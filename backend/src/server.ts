@@ -1,5 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { openDatabase, type DurDatabase } from './identity/database';
 import { SessionService } from './identity/sessions';
 import { verifyTelegramInitData } from './identity/telegram';
@@ -181,7 +183,7 @@ export function createApiServer(options: ApiOptions = {}) {
   return server;
 }
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   createApiServer().listen(port, '0.0.0.0', () => {
     console.log(`DUR API listening on port ${port}`);
   });

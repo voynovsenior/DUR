@@ -1,7 +1,7 @@
 {
   "name": "dur-miniapp",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -20,7 +20,6 @@
     "better-sqlite3": "^11.8.1",
     "dotenv": "^16.4.7",
     "@ton/ton": "^15.3.1",
-    "@ton/crypto": "^3.3.0",
     "@ton/core": "^0.61.0"
   },
   "devDependencies": {

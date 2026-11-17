@@ -57,6 +57,14 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
           UNIQUE (network, address)
         );
         CREATE INDEX IF NOT EXISTS wallet_links_user_id_idx ON wallet_links(user_id);
+        CREATE TABLE IF NOT EXISTS ton_proof_challenges (
+          payload_hash TEXT PRIMARY KEY,
+          attempt_hash TEXT NOT NULL,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          expires_at INTEGER NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS ton_proof_challenges_expires_at_idx ON ton_proof_challenges(expires_at);
       `);
       db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (2, ?)').run(Math.floor(Date.now() / 1000));
     });

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" fill="none">
+<defs><radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(450 180 -240 600 900 160)" gradientUnits="userSpaceOnUse"><stop stop-color="#29466F" stop-opacity=".65"/><stop offset="1" stop-color="#080A0E" stop-opacity="0"/></radialGradient><linearGradient id="stroke" x1="90" y1="60" x2="280" y2="280" gradientUnits="userSpaceOnUse"><stop stop-color="#C6D9F7"/><stop offset="1" stop-color="#6689BC"/></linearGradient></defs>
+<path fill="#080A0E" d="M0 0h1200v360H0z"/><path fill="url(#glow)" d="M0 0h1200v360H0z"/>
+<path stroke="#8BAAD7" stroke-opacity=".12" d="M0 300.5h1200M0 60.5h1200M1000 .5v360M1100 .5v360"/>
+<rect x="92" y="100" width="108" height="108" rx="30" stroke="url(#stroke)" stroke-width="2"/><path d="M147 125v58m-18-29h36" stroke="#DCE8F8" stroke-width="2" stroke-linecap="round" opacity=".0"/>
+<text x="146" y="170" fill="#EAF1FC" font-family="Arial,sans-serif" font-size="48" font-weight="700" text-anchor="middle">D</text>
+<text x="238" y="163" fill="#F1F5FC" font-family="Arial,sans-serif" font-size="58" font-weight="700" letter-spacing="14">DUR</text>
+<text x="96" y="258" fill="#8EADD8" font-family="Arial,sans-serif" font-size="14" letter-spacing="5">DECENTRALIZED TRUST INFRASTRUCTURE</text>
+<text x="96" y="296" fill="#A6B2C4" font-family="Arial,sans-serif" font-size="20">Reputation · Attestations · Modular Escrow</text>
+<circle cx="1080" cy="120" r="58" stroke="#8CAFE0" stroke-opacity=".25"/><circle cx="1080" cy="120" r="39" stroke="#8CAFE0" stroke-opacity=".35" stroke-dasharray="3 7"/><circle cx="1080" cy="120" r="6" fill="#9CB9E6"/>
+</svg>

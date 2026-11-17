@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8787`
 
-The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation, persistent attestation registry, indexing, and escrow are not implemented.
+The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation, canonical TON indexing, and escrow are not implemented. The attestation registry has issuer-authenticated create/read/revoke endpoints but no public subject-consent or schema registry yet.
 
 ## GET /healthz
 
@@ -52,6 +52,26 @@ Required server environment:
 
 Supported fixed-key wallet versions currently include V1R1–V3R2 and V4R2. V4R1, V5, WalletTg and other unrecognized code hashes are rejected until separately implemented and reviewed.
 
+## Attestation registry
+
+### POST /v1/admin/issuers
+
+Requires `Authorization: Bearer <DUR_ADMIN_TOKEN>` and JSON `{ "displayName": "Marketplace", "issuerType": "marketplace" }`. Creates an active issuer and returns its API key once. The server stores only the key digest. Keep `DUR_ADMIN_TOKEN` private and do not place it in frontend variables.
+
+### POST /v1/attestations
+
+Requires an active issuer API key in the Bearer header. Accepts `schemaId`, `schemaVersion`, `subjectId`, `claim`, `evidenceRefs`, and optional `expiresAt`. The server determines `issuerId` and `issuedAt`; clients cannot choose either. Claim content is canonicalized and hashed. The registry records issuance as an event.
+
+### GET /v1/attestations/{id}
+
+Requires the issuing issuer API key. Returns that issuer's attestation and event history.
+
+### POST /v1/attestations/{id}/revoke
+
+Requires the issuing issuer API key and JSON `{ "reason": "..." }`. Revocation is recorded as a status transition and event. Expired attestations cannot be revoked.
+
+Issuer trust tier defaults to `unverified`. The current registry validates the attestation envelope and canonical JSON but does not yet validate claim fields against a registered JSON Schema. Issuer claims are not independently verified facts.
+
 ## GET /v1/profiles/{identifier}
 
 Returns HTTP 501 with `not_implemented`. No reputation profile is fabricated.
@@ -73,6 +93,7 @@ Optional environment variables:
 - `CORS_ORIGIN` — exact allowed frontend origin.
 - `TON_APP_DOMAIN` — exact public dApp hostname (required for wallet linking).
 - `TON_NETWORK_ID` — defaults to `-3` (TON Testnet).
+- `DUR_ADMIN_TOKEN` — optional server-only credential for creating issuers.
 
 ## Error model
 

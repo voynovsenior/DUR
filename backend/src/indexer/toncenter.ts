@@ -160,7 +160,8 @@ export class TonCenterIndexer {
             opcode: tx.in_msg.opcode ?? null,
             bodyHash: tx.in_msg.message_content?.hash ?? null,
           } : null,
-          outgoingMessages: outMessages.map(message => ({
+          outgoingMessageCount: outMessages.length,
+          outgoingMessages: outMessages.slice(0, 64).map(message => ({
             hash: message.hash ?? null,
             source: message.source ?? null,
             destination: message.destination ?? null,

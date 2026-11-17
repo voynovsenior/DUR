@@ -130,6 +130,8 @@ export function createApiServer(options: ApiOptions = {}) {
           return;
         }
         const verified = verifyTelegramInitData(body.initData, { botToken });
+        // Rotate an existing browser session instead of leaving it active after re-authentication.
+        sessions.revoke(readCookie(req, COOKIE_NAME));
         const created = sessions.createForTelegram(verified.user);
         send(res, 200, {
           authenticated: true,

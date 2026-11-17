@@ -45,7 +45,7 @@ Revokes the server-side session and expires the cookie.
 
 ### Session controls
 
-- SQLite persistence for accounts and sessions with transactional schema migration version 1;
+- SQLite persistence for accounts, sessions, wallet links and proof challenges with transactional schema migrations v1–v2;
 - 256-bit random opaque session tokens;
 - only token digests are stored;
 - HttpOnly and SameSite=Strict cookies;
@@ -59,6 +59,8 @@ Environment:
 - `DUR_DATABASE_PATH` — optional SQLite path; defaults to `./data/dur.sqlite`.
 - `COOKIE_SECURE` — defaults to Secure; set to `false` only for local HTTP development.
 - `CORS_ORIGIN` — optional exact frontend origin.
+- `TON_APP_DOMAIN` — exact dApp hostname required for TON Proof.
+- `TON_NETWORK_ID` — TON global network ID; defaults to `-3` (Testnet).
 
 The API does not authenticate from `initDataUnsafe`. The frontend must send the raw `Telegram.WebApp.initData` string.
 
@@ -82,7 +84,7 @@ Required sequence:
 5. Derive the wallet address from the supplied state init and require an exact match.
 6. Resolve the public key from trusted wallet state or an approved on-chain getter. Never trust the client-supplied public key by itself.
 7. Reconstruct the TON proof message exactly and verify the Ed25519 signature.
-8. Atomically consume the challenge and issue a fresh authenticated session.
+8. Atomically consume the challenge and attach the verified wallet to the already authenticated DUR account.
 
 A wallet proof must be bound to the expected dApp domain and requested TON network. Testnet and mainnet identities must remain network-qualified.
 
@@ -90,7 +92,7 @@ The official TON guide specifies the proof byte layout, signature digest, addres
 
 ## Database migrations
 
-The backend creates a `schema_migrations` table and applies the initial identity schema transactionally. Future schema changes must be added as ordered migrations; backup and restore procedures remain outstanding.
+The backend creates a `schema_migrations` table and applies identity, wallet-link and proof-challenge schemas through transactional migrations v1–v2. Future schema changes must be added as ordered migrations; backup and restore procedures remain outstanding.
 
 ## Production hardening still required
 
@@ -110,8 +112,8 @@ The backend creates a `schema_migrations` table and applies the initial identity
 | Telegram login HTTP route | Implemented |
 | Persistent account and session store | Implemented with SQLite |
 | Session creation / expiry / logout | Implemented |
-| TON Connect proof verifier | Not implemented |
-| Wallet-to-account linking | Not implemented |
+| TON Connect proof verifier (supported fixed-key wallets) | Implemented in code; CI and real-wallet QA pending |
+| Wallet-to-account linking | Implemented in code; deployment configuration pending |
 | Reputation / attestation / escrow writes | Not implemented |
 
 This is a development foundation, not an audited production authentication service. Do not use it for custody or real-value transactions.

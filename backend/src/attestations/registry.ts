@@ -149,12 +149,20 @@ export class AttestationRegistry {
     if (!row) return null;
 
     if (row.status === 'active' && row.expiresAt !== null && row.expiresAt <= nowSeconds) {
-      this.db.prepare("UPDATE attestations SET status = 'expired' WHERE id = ? AND status = 'active'").run(attestationId);
-      this.db.prepare(`
-        INSERT INTO attestation_events (id, attestation_id, actor_issuer_id, event_type, occurred_at, reason)
-        VALUES (?, ?, NULL, 'expired', ?, 'Attestation expiry reached')
-      `).run(randomUUID(), attestationId, nowSeconds);
-      row.status = 'expired';
+      const transition = this.db.transaction(() => {
+        const updated = this.db.prepare(
+          "UPDATE attestations SET status = 'expired' WHERE id = ? AND status = 'active'",
+        ).run(attestationId);
+        if (updated.changes > 0) {
+          this.db.prepare(`
+            INSERT INTO attestation_events (id, attestation_id, actor_issuer_id, event_type, occurred_at, reason)
+            VALUES (?, ?, NULL, 'expired', ?, 'Attestation expiry reached')
+          `).run(randomUUID(), attestationId, nowSeconds);
+        }
+        const current = this.db.prepare('SELECT status FROM attestations WHERE id = ?').get(attestationId) as { status: string };
+        return current.status;
+      });
+      row.status = transition();
     }
 
     return {

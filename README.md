@@ -28,7 +28,7 @@ DUR is designed around independently composable modules:
 - **Verification** — checks that distinguish on-chain facts from off-chain claims and issuer assertions.
 - **Developer interfaces** — APIs and SDKs intended to let external TON applications consume and issue supported evidence.
 
-The initial deployment target is **TON Testnet**. Mainnet deployment is out of scope until implementation, testing, and independent security review are complete.
+The initial deployment target is **TON Testnet**. The current wallet-proof verifier explicitly rejects other network IDs. Mainnet deployment is out of scope until implementation, testing, and independent security review are complete.
 
 ## Current prototype
 

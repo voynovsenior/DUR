@@ -168,5 +168,24 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+
+  const schemaRegistryMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 5').get();
+  if (!schemaRegistryMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS attestation_schemas (
+          schema_id TEXT NOT NULL,
+          schema_version INTEGER NOT NULL,
+          schema_json TEXT NOT NULL,
+          status TEXT NOT NULL CHECK (status IN ('active', 'deprecated')),
+          created_at INTEGER NOT NULL,
+          PRIMARY KEY (schema_id, schema_version)
+        );
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (5, ?)').run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

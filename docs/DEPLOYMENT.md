@@ -1,7 +1,7 @@
 # Deployment guide
 
 ## Current status
-The repository is a prototype. Deployment makes the preview accessible; it does not activate reputation scoring, public subject-consented attestations, indexing or escrow contracts. Issuer endpoints require deliberate admin credential configuration.
+The repository is a prototype. Deployment makes the preview accessible; it does not activate production reputation scoring, cryptographically verified indexing or escrow contracts. Issuer writes require admin-created issuers, registered schemas and wallet-owner consent.
 
 ## Frontend hosting
 1. Connect this repository to a static hosting provider that supports Vite.
@@ -28,9 +28,13 @@ Run npm run api on a Node.js host with a persistent disk for SQLite. Configure p
 - CORS_ORIGIN (exact HTTPS frontend origin)
 - TON_APP_DOMAIN (exact public dApp hostname, e.g. app.example.com)
 - TON_NETWORK_ID=-3 (Testnet)
-- DUR_ADMIN_TOKEN (optional; server-only issuer administration credential)
+- DUR_ADMIN_TOKEN (server-only issuer/schema administration credential)
+- TONCENTER_API_URL (optional; defaults to TON Center Testnet API v3)
+- TONCENTER_API_KEY (optional provider key)
+- INDEXER_START_SEQNO (required for first manual sync)
+- INDEXER_MAX_BLOCKS (bounded manual sync size; defaults to 1)
 
-Keep the database directory out of static hosting. Back up the SQLite database securely. The API supports Telegram login/session endpoints and Testnet-first TON Proof wallet linking for a limited set of standard wallets. The API and Mini App should share a site so SameSite=Strict cookies work; if separate subdomains are used, verify the cookie and CORS configuration before deployment.
+Keep the database directory out of static hosting. Back up the SQLite database securely. The API supports Telegram login, Testnet-first TON Proof wallet linking, wallet-owner consent, issuer/schema administration and a manual unverified Testnet indexer adapter. The API and Mini App should share a site so SameSite=Strict cookies work; if separate subdomains are used, verify the cookie and CORS configuration before deployment.
 
 ## Bot hosting
 Run npm run bot on a Node.js host with private environment variables:
@@ -49,4 +53,6 @@ Telegram Serverless access is not assumed. If access becomes available, evaluate
 - [ ] Telegram init data validated server-side before privileged operations
 - [ ] Wallet proof verified server-side before associating ownership
 - [ ] No real escrow or custody enabled
+- [ ] Consent grants and issuer API keys reviewed before enabling external issuers
+- [ ] Indexer imports remain marked unverified until independent proof verification is implemented
 - [ ] Build and mobile smoke tests pass

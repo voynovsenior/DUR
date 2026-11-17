@@ -14,5 +14,5 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["backend/**/*.ts"]
+  "include": ["backend/**/*.ts", "sdk/**/*.ts"]
 }

@@ -418,7 +418,7 @@ export function createApiServer(options: ApiOptions = {}) {
           send(res, 400, { error: 'invalid_request', requestId });
           return;
         }
-        const subjectMatch = body.subjectId.match(/^wallet:(-3):((?:-1|0):[a-fA-F0-9]{64})$/);
+        const subjectMatch = body.subjectId.match(/^wallet:(-3):(0:[a-fA-F0-9]{64})$/);
         if (!subjectMatch) {
           send(res, 400, { error: 'invalid_subject_id', requestId });
           return;
@@ -519,7 +519,7 @@ export function createApiServer(options: ApiOptions = {}) {
           expiresAt?: unknown;
         };
         if (!body || typeof body.walletAddress !== 'string' ||
-            !/^(?:-1|0):[a-fA-F0-9]{64}$/.test(body.walletAddress) ||
+            !/^0:[a-fA-F0-9]{64}$/.test(body.walletAddress) ||
             typeof body.issuerId !== 'string' || typeof body.schemaId !== 'string' ||
             !Number.isSafeInteger(body.schemaVersion) || typeof body.purpose !== 'string' ||
             body.purpose.trim().length < 5 || body.purpose.trim().length > 256) {

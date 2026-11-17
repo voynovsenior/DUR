@@ -1,4 +1,6 @@
-# Initial data model proposal
+# DUR data model
+
+The entities below define the protocol model. The backend currently includes a validated canonical claim helper in `backend/src/attestations/model.ts`; persistent issuer and attestation registry tables and API routes are not implemented yet.
 
 This document is a design proposal, not a deployed database schema. It defines conceptual entities for later review before migrations are written.
 
@@ -42,7 +44,7 @@ Proposed fields:
 - `status`;
 - optional `revocation_reason`.
 
-The claim and its evidence must remain distinguishable. An attestation is evidence that an issuer made a claim, not automatic proof that the claim is true.
+The claim and its evidence must remain distinguishable. The current helper validates identifiers, schema version, timestamps, evidence reference bounds and JSON-safe claim content, then computes a deterministic SHA-256 digest over canonical JSON. This digest identifies the claim bytes; it does not authenticate an issuer or prove the claim true. An attestation is evidence that an issuer made a claim, not automatic proof that the claim is true.
 
 ## Evidence event
 Represents a normalized input to future reputation computation.

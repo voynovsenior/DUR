@@ -33,7 +33,8 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [x] Persistent issuer registry and hashed API-key authentication
 - [x] Attestation issuance, expiry, revocation and event history
 - [x] Issuer API key revocation
-- [ ] Registered JSON Schema validation and subject-consent workflow
+- [x] Registered immutable JSON Schema versions and claim validation
+- [ ] Subject-consent workflow
 - [ ] Issuer trust-tier policy and administrative suspension workflow
 - [x] Durable idempotent chain-event store and checkpoint migrations
 - [x] Manual TON Center API v3 Testnet ingestion adapter (records unverified provider data)

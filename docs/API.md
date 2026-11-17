@@ -52,6 +52,16 @@ Required server environment:
 
 Supported fixed-key wallet versions currently include V1R1–V3R2 and V4R2. V4R1, V5, WalletTg and other unrecognized code hashes are rejected until separately implemented and reviewed.
 
+## Public directories
+
+### GET /v1/issuers
+
+Lists active issuers with their public ID, display name, type and current trust tier. An issuer with `unverified` tier has not yet passed DUR trust review.
+
+### GET /v1/schemas
+
+Lists active immutable schema IDs and versions available for consent grants.
+
 ## Subject consent
 
 ### POST /v1/auth/consents

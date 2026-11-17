@@ -1,13 +1,13 @@
 # Architecture
 
 ## Scope
-DUR is planned as a modular application and protocol layer for TON. This repository currently contains a frontend prototype, a minimal Telegram bot, a read-only API shell, and a Telegram init-data verification helper. The identity session layer, indexer, reputation engine, attestation registry and contracts remain future work.
+DUR is planned as a modular application and protocol layer for TON. This repository currently contains a frontend prototype, a minimal Telegram bot, a backend API foundation with Telegram init-data verification and persistent SQLite sessions, and project documentation. TON wallet proof verification, the indexer, reputation engine, attestation registry and escrow contracts remain unimplemented.
 
 ## Components
 1. **Telegram Mini App** — presentation and user interaction; treat it as an untrusted client.
 2. **Telegram bot** — onboarding and notifications; credentials remain server-side.
-3. **Identity Layer** — verifies Telegram init data and, when implemented, TON Connect wallet proofs; manages links and sessions.
-4. **Application API** — planned authenticated profile and integration endpoints.
+3. **Identity Layer** — verifies Telegram init data and manages persistent sessions; TON Connect wallet proof verification and wallet linking are planned, not implemented.
+4. **Application API** — currently exposes health, capability status, and Telegram authentication/session endpoints; protocol data endpoints remain planned.
 5. **Reputation Engine** — planned deterministic computation over eligible evidence.
 6. **Attestation Registry** — planned issuer and attestation lifecycle management.
 7. **Escrow module** — planned independent contract and application module.
@@ -17,7 +17,7 @@ DUR is planned as a modular application and protocol layer for TON. This reposit
 ## Trust boundaries
 - Browser and Telegram WebView inputs are untrusted.
 - Telegram `initDataUnsafe` is display context only; backend verification uses signed raw `initData`.
-- The Telegram verifier currently exists as a tested helper, not a login/session service.
+- Telegram init-data verification, login, and persistent session routes are implemented; they are not an independently audited production identity service.
 - A wallet address is not proof of ownership. The backend must verify TON Connect `ton_proof` before linking a wallet.
 - An indexer may derive facts from canonical chain data but must not invent events.
 - Off-chain claims require issuer policies and evidence. A transaction cannot prove subjective work quality.

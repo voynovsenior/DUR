@@ -1,5 +1,7 @@
 # DUR Protocol
 
+<p align="center"><img src="assets/dur-banner.svg" alt="DUR — Decentralized Trust Infrastructure" width="100%"/></p>
+
 <p align="center">
   <strong>Decentralized Trust Infrastructure for TON</strong><br/>
   Verifiable reputation · Attestations · Modular escrow

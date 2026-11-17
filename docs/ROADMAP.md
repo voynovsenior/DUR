@@ -42,7 +42,8 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [ ] Automated continuous indexer operation and recovery
 
 ## 0.4 — Reputation
-- [ ] Public methodology document
+- [x] Public reputation methodology document (design draft)
+- [ ] Calibrated and tested reputation calculation implementation
 - [ ] Evidence eligibility rules
 - [ ] Explainable dimensions and aggregation
 - [ ] Dispute and correction workflow

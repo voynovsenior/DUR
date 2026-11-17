@@ -36,7 +36,8 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [x] Registered immutable JSON Schema versions and claim validation
 - [x] Wallet-owner consent grants scoped to linked wallet, issuer and schema version
 - [x] Consent listing and revocation
-- [ ] Issuer trust-tier policy and administrative suspension workflow
+- [x] Administrative issuer suspension and terminal revocation
+- [ ] Issuer trust-tier policy and trust-level review
 - [ ] Dispute and correction workflow
 - [x] Durable idempotent chain-event store and checkpoint migrations
 - [x] Manual TON Center API v3 Testnet ingestion adapter (records unverified provider data)

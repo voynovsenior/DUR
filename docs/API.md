@@ -58,6 +58,10 @@ Supported fixed-key wallet versions currently include V1R1–V3R2 and V4R2. V4R1
 
 Requires `Authorization: Bearer <DUR_ADMIN_TOKEN>` and JSON `{ "displayName": "Marketplace", "issuerType": "marketplace" }`. Creates an active issuer and returns its API key once. The server stores only the key digest. Keep `DUR_ADMIN_TOKEN` private and do not place it in frontend variables.
 
+### POST /v1/issuers/me/revoke-key
+
+Requires the issuer's current API key. Revokes that key immediately; it cannot be used again.
+
 ### POST /v1/attestations
 
 Requires an active issuer API key in the Bearer header. Accepts `schemaId`, `schemaVersion`, `subjectId`, `claim`, `evidenceRefs`, and optional `expiresAt`. The server determines `issuerId` and `issuedAt`; clients cannot choose either. Claim content is canonicalized and hashed. The registry records issuance as an event.

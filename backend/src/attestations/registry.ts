@@ -18,6 +18,14 @@ export type IssuerPublicRecord = {
 export class AttestationRegistry {
   constructor(private readonly db: DurDatabase) {}
 
+  listActiveIssuers() {
+    return this.db.prepare(`
+      SELECT id, display_name AS displayName, issuer_type AS issuerType,
+             policy_version AS policyVersion, trust_tier AS trustTier
+      FROM issuers WHERE status = 'active' ORDER BY display_name ASC
+    `).all();
+  }
+
   createIssuer(input: { displayName: string; issuerType: string }, nowSeconds = Math.floor(Date.now() / 1000)) {
     const displayName = input.displayName?.trim();
     const issuerType = input.issuerType?.trim();

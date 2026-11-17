@@ -57,3 +57,7 @@ Identity API tests use an in-memory SQLite database and synthetic Telegram test 
 - adversarial and property-based tests.
 
 No test suite is a substitute for independent security review before any mainnet deployment.
+
+## Indexer adapter
+
+The TON Center adapter is tested with deterministic API fixtures. Tests cover Testnet-only configuration, block/transaction normalization, and the explicit `unverified` trust status. These tests do not establish live provider availability or cryptographic chain verification.

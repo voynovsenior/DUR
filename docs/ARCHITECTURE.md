@@ -6,8 +6,8 @@ DUR is planned as a modular application and protocol layer for TON. This reposit
 ## Components
 1. **Telegram Mini App** — presentation and user interaction; treat it as an untrusted client.
 2. **Telegram bot** — onboarding and notifications; credentials remain server-side.
-3. **Identity Layer** — verifies Telegram init data and manages persistent sessions; TON Connect wallet proof verification and wallet linking are planned, not implemented.
-4. **Application API** — currently exposes health, capability status, and Telegram authentication/session endpoints; protocol data endpoints remain planned.
+3. **Identity Layer** — verifies Telegram init data, manages persistent sessions, and links supported TON wallets after server-side `ton_proof` verification.
+4. **Application API** — currently exposes health, capability status, Telegram authentication/session endpoints, and TON wallet challenge/linking endpoints; reputation, attestation and escrow data endpoints remain planned.
 5. **Reputation Engine** — planned deterministic computation over eligible evidence.
 6. **Attestation Registry** — planned issuer and attestation lifecycle management.
 7. **Escrow module** — planned independent contract and application module.

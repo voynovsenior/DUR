@@ -284,6 +284,7 @@ export function createApiServer(options: ApiOptions = {}) {
         send(res, 401, { error: 'unauthorized', requestId });
         return;
       }
+      if (enforceLimit(res, requestId, `ton-challenge:${user.id}`, 10)) return;
       const challenge = tonChallenges.issue(user.id);
       send(res, 200, { payload: challenge.payload, expiresAt: challenge.expiresAt }, {
         'set-cookie': cookie(TON_ATTEMPT_COOKIE, challenge.attemptToken, secureCookies, 10 * 60, '/v1/auth/ton'),
@@ -426,6 +427,7 @@ export function createApiServer(options: ApiOptions = {}) {
 
     const issuerStatusRoute = url.pathname.match(/^\/v1\/admin\/issuers\/([^/]+)\/status$/);
     if (issuerStatusRoute && req.method === 'POST') {
+      if (enforceLimit(res, requestId, clientKey(req, 'issuer-status-admin'), 20)) return;
       if (!adminToken) {
         send(res, 503, { error: 'issuer_admin_not_configured', requestId });
         return;

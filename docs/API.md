@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8787`
 
-The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation, canonical TON indexing, and escrow are not implemented. The attestation registry has issuer-authenticated create/read/revoke endpoints but no public subject-consent or schema registry yet.
+The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation and escrow are not implemented. A manual TON Testnet ingestion adapter is available, but its indexed provider data remains explicitly unverified. The attestation registry has issuer-authenticated create/read/revoke endpoints but no public subject-consent or schema registry yet.
 
 ## GET /healthz
 
@@ -76,6 +76,18 @@ Requires the issuing issuer API key and JSON `{ "reason": "..." }`. Revocation i
 
 Issuer trust tier defaults to `unverified`. The current registry validates the attestation envelope and canonical JSON but does not yet validate claim fields against a registered JSON Schema. Issuer claims are not independently verified facts.
 
+## TON Testnet indexer
+
+### GET /v1/indexer/status
+
+Returns the last persisted Testnet masterchain checkpoint and the `provider_indexed_data_unverified` trust label.
+
+### GET /v1/indexer/events
+
+Returns up to 100 recently ingested events. Optional query parameters: `network=ton-testnet`, `limit=1..100`, and `status=verified|unverified|quarantined`. The current TON Center adapter imports raw transactions as `unverified`; these records must not contribute to reputation.
+
+Run a bounded manual sync with `npm run indexer:sync`. Configure `TONCENTER_API_URL` (Testnet API v3), optional `TONCENTER_API_KEY`, `INDEXER_START_SEQNO` for the first run, and `INDEXER_MAX_BLOCKS`. The first checkpoint must be chosen deliberately; an empty value is not interpreted as block zero. Later runs resume from the stored checkpoint.
+
 ## GET /v1/profiles/{identifier}
 
 Returns HTTP 501 with `not_implemented`. No reputation profile is fabricated.
@@ -98,6 +110,10 @@ Optional environment variables:
 - `TON_APP_DOMAIN` — exact public dApp hostname (required for wallet linking).
 - `TON_NETWORK_ID` — must be `-3` (TON Testnet); other networks are rejected.
 - `DUR_ADMIN_TOKEN` — optional server-only credential for creating issuers.
+- `TONCENTER_API_URL` — defaults to TON Center API v3 Testnet.
+- `TONCENTER_API_KEY` — optional provider API key.
+- `INDEXER_START_SEQNO` — required for the first indexer run; choose a deliberate starting masterchain sequence number.
+- `INDEXER_MAX_BLOCKS` — maximum blocks per manual run, defaults to 1.
 
 ## Error model
 

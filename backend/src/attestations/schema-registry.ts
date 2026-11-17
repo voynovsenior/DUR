@@ -32,8 +32,7 @@ export class AttestationSchemaRegistry {
       throw new Error('schema_version_already_registered');
     }
     try {
-      this.ajv.addSchema(candidate, key);
-      this.ajv.getSchema(key);
+      new Ajv({ allErrors: true, strict: true, validateSchema: true }).compile(candidate);
     } catch {
       throw new Error('invalid_json_schema');
     }
@@ -41,6 +40,7 @@ export class AttestationSchemaRegistry {
       INSERT INTO attestation_schemas (schema_id, schema_version, schema_json, status, created_at)
       VALUES (?, ?, ?, 'active', ?)
     `).run(schemaId, version, JSON.stringify(candidate), nowSeconds);
+    this.ajv.addSchema(candidate, key);
     return { schemaId, schemaVersion: version, status: 'active' as const };
   }
 

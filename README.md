@@ -128,6 +128,7 @@ Never commit a real bot token. Do not send bot tokens, seed phrases, or private 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [API preview](docs/API.md)
 - [Protocol concepts](docs/PROTOCOL.md)
 - [Security model](docs/SECURITY.md)
 - [Roadmap](docs/ROADMAP.md)

@@ -28,6 +28,7 @@ Run npm run api on a Node.js host with a persistent disk for SQLite. Configure p
 - CORS_ORIGIN (exact HTTPS frontend origin)
 - TON_APP_DOMAIN (exact public dApp hostname, e.g. app.example.com)
 - TON_NETWORK_ID=-3 (Testnet)
+- DUR_ADMIN_TOKEN (optional; server-only issuer administration credential)
 
 Keep the database directory out of static hosting. Back up the SQLite database securely. The API supports Telegram login/session endpoints and Testnet-first TON Proof wallet linking for a limited set of standard wallets. The API and Mini App should share a site so SameSite=Strict cookies work; if separate subdomains are used, verify the cookie and CORS configuration before deployment.
 

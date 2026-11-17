@@ -60,7 +60,7 @@ Environment:
 - `COOKIE_SECURE` — defaults to Secure; set to `false` only for local HTTP development.
 - `CORS_ORIGIN` — optional exact frontend origin.
 - `TON_APP_DOMAIN` — exact dApp hostname required for TON Proof.
-- `TON_NETWORK_ID` — TON global network ID; defaults to `-3` (Testnet).
+- `TON_NETWORK_ID` — must be `-3` (TON Testnet) for the current verifier; other networks are rejected.
 
 The API does not authenticate from `initDataUnsafe`. The frontend must send the raw `Telegram.WebApp.initData` string.
 

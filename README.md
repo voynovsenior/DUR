@@ -51,7 +51,8 @@ The first UI package includes:
 | Reputation engine | Not implemented |
 | Attestation registry | Not implemented |
 | Escrow contracts | Not implemented |
-| Backend and indexer | Not implemented |
+| Backend API | Telegram authentication/session foundation implemented; other protocol APIs pending |
+| Chain indexer | Not implemented |
 
 ## Repository structure
 

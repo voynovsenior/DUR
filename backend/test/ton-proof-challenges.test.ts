@@ -6,6 +6,8 @@ import { TonProofChallengeStore } from '../src/identity/ton-proof-challenges';
 test('TON proof challenge is bound to its user and attempt token', () => {
   const db = openDatabase(':memory:');
   try {
+    db.prepare('INSERT INTO users (id, telegram_id, first_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+      .run('user-1', '10001', 'Test', 1, 1);
     const store = new TonProofChallengeStore(db);
     const issued = store.issue('user-1', 1_800_000_000);
     assert.equal(store.matches(issued.payload, issued.attemptToken, 'user-1', 1_800_000_001), true);
@@ -19,6 +21,8 @@ test('TON proof challenge is bound to its user and attempt token', () => {
 test('TON proof challenge expires and can be consumed only once', () => {
   const db = openDatabase(':memory:');
   try {
+    db.prepare('INSERT INTO users (id, telegram_id, first_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+      .run('user-1', '10001', 'Test', 1, 1);
     const store = new TonProofChallengeStore(db);
     const issued = store.issue('user-1', 1_800_000_000);
     assert.equal(store.consume(issued.payload, issued.attemptToken, 'user-1', 1_800_000_001), true);

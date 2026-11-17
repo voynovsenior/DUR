@@ -187,5 +187,32 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+
+  const consentMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 6').get();
+  if (!consentMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS subject_consents (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          network TEXT NOT NULL,
+          wallet_address TEXT NOT NULL,
+          issuer_id TEXT NOT NULL REFERENCES issuers(id) ON DELETE CASCADE,
+          schema_id TEXT NOT NULL,
+          schema_version INTEGER NOT NULL,
+          purpose TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          expires_at INTEGER,
+          revoked_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS subject_consents_lookup_idx
+          ON subject_consents(network, wallet_address, issuer_id, schema_id, schema_version, revoked_at, expires_at);
+        CREATE INDEX IF NOT EXISTS subject_consents_user_idx ON subject_consents(user_id, created_at DESC);
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (6, ?)').run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

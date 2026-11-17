@@ -71,5 +71,59 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+  const attestationMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 3').get();
+  if (!attestationMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS issuers (
+          id TEXT PRIMARY KEY,
+          display_name TEXT NOT NULL,
+          issuer_type TEXT NOT NULL,
+          policy_version INTEGER NOT NULL,
+          trust_tier TEXT NOT NULL DEFAULT 'unverified',
+          status TEXT NOT NULL CHECK (status IN ('active', 'suspended', 'revoked')),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS issuer_api_keys (
+          key_hash TEXT PRIMARY KEY,
+          issuer_id TEXT NOT NULL REFERENCES issuers(id) ON DELETE CASCADE,
+          created_at INTEGER NOT NULL,
+          revoked_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS issuer_api_keys_issuer_id_idx ON issuer_api_keys(issuer_id);
+        CREATE TABLE IF NOT EXISTS attestations (
+          id TEXT PRIMARY KEY,
+          schema_id TEXT NOT NULL,
+          schema_version INTEGER NOT NULL,
+          issuer_id TEXT NOT NULL REFERENCES issuers(id),
+          subject_id TEXT NOT NULL,
+          claim_json TEXT NOT NULL,
+          claim_digest TEXT NOT NULL,
+          evidence_refs_json TEXT NOT NULL,
+          issued_at INTEGER NOT NULL,
+          expires_at INTEGER,
+          status TEXT NOT NULL CHECK (status IN ('active', 'revoked', 'expired')),
+          revoked_at INTEGER,
+          revocation_reason TEXT,
+          created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS attestations_subject_idx ON attestations(subject_id, issued_at DESC);
+        CREATE INDEX IF NOT EXISTS attestations_issuer_idx ON attestations(issuer_id, issued_at DESC);
+        CREATE TABLE IF NOT EXISTS attestation_events (
+          id TEXT PRIMARY KEY,
+          attestation_id TEXT NOT NULL REFERENCES attestations(id),
+          actor_issuer_id TEXT REFERENCES issuers(id),
+          event_type TEXT NOT NULL CHECK (event_type IN ('issued', 'revoked', 'expired')),
+          occurred_at INTEGER NOT NULL,
+          reason TEXT
+        );
+        CREATE INDEX IF NOT EXISTS attestation_events_attestation_idx ON attestation_events(attestation_id, occurred_at);
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (3, ?)').run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

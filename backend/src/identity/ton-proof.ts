@@ -116,7 +116,7 @@ function buildProofDigest(address: Address, proof: TonProofRequest['proof']): Bu
 export function verifyTonProof(
   request: TonProofRequest,
   options: TonProofOptions,
-): { address: string; network: string } {
+): { address: string; network: string; publicKey: string } {
   if (!request || typeof request !== 'object' || !request.proof) throw new Error('invalid_proof_request');
   if (request.network !== options.expectedNetwork) throw new Error('wrong_network');
   if (!options.expectedDomain || request.proof.domain?.value !== options.expectedDomain) {
@@ -164,5 +164,5 @@ export function verifyTonProof(
   const digest = buildProofDigest(address, proof);
   if (!verifySignature(null, digest, key, signature)) throw new Error('invalid_signature');
 
-  return { address: address.toRawString(), network: request.network };
+  return { address: address.toRawString(), network: request.network, publicKey: publicKey.toString('hex') };
 }

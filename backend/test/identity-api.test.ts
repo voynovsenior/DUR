@@ -1,0 +1,108 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
+import { createApiServer } from '../src/server';
+import { openDatabase } from '../src/identity/database';
+
+const token = '123456:LOCAL_TEST_TOKEN';
+const now = Math.floor(Date.now() / 1000);
+
+function initData() {
+  const fields = {
+    auth_date: String(now),
+    user: JSON.stringify({ id: 987654, first_name: 'DUR Test', username: 'dur_test' }),
+  };
+  const check = Object.entries(fields)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${value}`)
+    .join('\n');
+  const secret = createHmac('sha256', 'WebAppData').update(token).digest();
+  const hash = createHmac('sha256', secret).update(check).digest('hex');
+  return new URLSearchParams({ ...fields, hash }).toString();
+}
+
+async function withServer(run: (base: string) => Promise<void>) {
+  const db = openDatabase(':memory:');
+  const server = createApiServer({ db, botToken: token, secureCookies: false });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  try {
+    await run(`http://127.0.0.1:${address.port}`);
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    db.close();
+  }
+}
+
+test('Telegram login creates a session and /me returns the verified account', async () => {
+  await withServer(async base => {
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    assert.equal(login.status, 200);
+    const setCookie = login.headers.get('set-cookie');
+    assert.ok(setCookie?.includes('HttpOnly'));
+    assert.ok(setCookie?.includes('SameSite=Strict'));
+    const sessionCookie = setCookie!.split(';')[0];
+
+    const me = await fetch(`${base}/v1/auth/me`, { headers: { cookie: sessionCookie } });
+    assert.equal(me.status, 200);
+    const body = await me.json() as { authenticated: boolean; user: { telegramId: string; firstName: string } };
+    assert.equal(body.authenticated, true);
+    assert.equal(body.user.telegramId, '987654');
+    assert.equal(body.user.firstName, 'DUR Test');
+  });
+});
+
+test('Telegram login rejects invalid signatures', async () => {
+  await withServer(async base => {
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData().replace('dur_test', 'forged') }),
+    });
+    assert.equal(login.status, 401);
+  });
+});
+
+test('logout revokes the server-side session', async () => {
+  await withServer(async base => {
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    const sessionCookie = login.headers.get('set-cookie')!.split(';')[0];
+
+    const logout = await fetch(`${base}/v1/auth/logout`, {
+      method: 'POST',
+      headers: { cookie: sessionCookie },
+    });
+    assert.equal(logout.status, 200);
+
+    const me = await fetch(`${base}/v1/auth/me`, { headers: { cookie: sessionCookie } });
+    assert.equal(me.status, 401);
+  });
+});
+
+test('auth endpoints do not create sessions when Telegram token is absent', async () => {
+  const db = openDatabase(':memory:');
+  const server = createApiServer({ db, botToken: '', secureCookies: false });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    assert.equal(response.status, 503);
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    db.close();
+  }
+});

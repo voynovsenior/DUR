@@ -161,7 +161,7 @@ test('TON proof challenge requires a verified Telegram session and is bound to t
   });
 });
 
-test('issuer admin creates an issuer and its key can issue and revoke attestations', async () => {
+test('issuer issuance requires a registered schema and current wallet-owner consent', async () => {
   await withServer(async (base, db) => {
     const schema = await fetch(`${base}/v1/admin/schemas`, {
       method: 'POST',
@@ -178,8 +178,7 @@ test('issuer admin creates an issuer and its key can issue and revoke attestatio
       }),
     });
     assert.equal(schema.status, 201);
-    const schemaRead = await fetch(`${base}/v1/schemas/dur.delivery.completed/1`);
-    assert.equal(schemaRead.status, 200);
+    assert.equal((await fetch(`${base}/v1/schemas/dur.delivery.completed/1`)).status, 200);
 
     const login = await fetch(`${base}/v1/auth/telegram`, {
       method: 'POST',
@@ -202,7 +201,21 @@ test('issuer admin creates an issuer and its key can issue and revoke attestatio
     });
     assert.equal(created.status, 201);
     const issuer = await created.json() as { issuer: { id: string }; apiKey: string };
-    assert.ok(issuer.apiKey.startsWith('dur_issuer_'));
+    const subjectId = `wallet:-3:${walletAddress}`;
+
+    const issue = (claim: unknown) => fetch(`${base}/v1/attestations`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
+      body: JSON.stringify({
+        schemaId: 'dur.delivery.completed',
+        schemaVersion: 1,
+        subjectId,
+        claim,
+        evidenceRefs: ['ton:transaction:abc123'],
+      }),
+    });
+
+    assert.equal((await issue({ completed: true })).status, 403);
 
     const consent = await fetch(`${base}/v1/auth/consents`, {
       method: 'POST',
@@ -218,58 +231,25 @@ test('issuer admin creates an issuer and its key can issue and revoke attestatio
     assert.equal(consent.status, 201);
     const consentBody = await consent.json() as { id: string };
 
-    const missingConsent = await fetch(`${base}/v1/attestations`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
-      body: JSON.stringify({
-        schemaId: 'dur.delivery.completed',
-        schemaVersion: 1,
-        subjectId: `wallet:-3:${walletAddress}`,
-        claim: { completed: true },
-        evidenceRefs: ['ton:transaction:abc123'],
-      }),
-    });
-    assert.equal(missingConsent.status, 201);
-
-    const invalidClaim = await fetch(`${base}/v1/attestations`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
-      body: JSON.stringify({
-        schemaId: 'dur.delivery.completed',
-        schemaVersion: 1,
-        subjectId: `wallet:-3:${walletAddress}`,
-        claim: { completed: 'yes' },
-        evidenceRefs: ['ton:transaction:abc123'],
-      }),
-    });
-    assert.equal(invalidClaim.status, 400);
-
-    const issued = await fetch(`${base}/v1/attestations`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
-      body: JSON.stringify({
-        schemaId: 'dur.delivery.completed',
-        schemaVersion: 1,
-        subjectId: 'wallet:-3:0:abc123',
-        claim: { completed: true },
-        evidenceRefs: ['ton:transaction:abc123'],
-      }),
-    });
+    assert.equal((await issue({ completed: 'yes' })).status, 400);
+    const issued = await issue({ completed: true });
     assert.equal(issued.status, 201);
     const attestation = await issued.json() as { id: string; claimDigest: string };
     assert.match(attestation.claimDigest, /^[a-f0-9]{64}$/);
 
-    const revoke = await fetch(`${base}/v1/attestations/${attestation.id}/revoke`, {
+    const revoked = await fetch(`${base}/v1/attestations/${attestation.id}/revoke`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
-      body: JSON.stringify({ reason: 'Order disputed' }),
+      body: JSON.stringify({ reason: 'Order was disputed' }),
     });
-    assert.equal(revoke.status, 200);
+    assert.equal(revoked.status, 200);
+
     const revokeConsent = await fetch(`${base}/v1/auth/consents/${consentBody.id}/revoke`, {
       method: 'POST',
       headers: { cookie: sessionCookie },
     });
     assert.equal(revokeConsent.status, 200);
+    assert.equal((await issue({ completed: true })).status, 403);
   });
 });
 

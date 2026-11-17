@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { openDatabase } from '../identity/database';
+import { openDatabase } from '../src/identity/database';
 import { ChainEventStore, type IndexerBatch } from '../src/indexer/event-store';
 
 function setup() {

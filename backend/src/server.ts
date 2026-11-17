@@ -10,6 +10,7 @@ import { TonProofChallengeStore } from './identity/ton-proof-challenges';
 import { verifyTonProof, type TonProofRequest } from './identity/ton-proof';
 import { AttestationRegistry } from './attestations/registry';
 import type { JsonValue } from './attestations/model';
+import { ChainEventStore } from './indexer/event-store';
 
 const port = Number(process.env.API_PORT ?? 8787);
 const COOKIE_NAME = 'dur_session';
@@ -90,6 +91,7 @@ export function createApiServer(options: ApiOptions = {}) {
   const sessions = new SessionService(db);
   const tonChallenges = new TonProofChallengeStore(db);
   const attestations = new AttestationRegistry(db);
+  const chainEvents = new ChainEventStore(db);
   const botToken = options.botToken ?? process.env.TELEGRAM_BOT_TOKEN ?? '';
   const allowedOrigin = options.allowedOrigin ?? process.env.CORS_ORIGIN ?? '';
   const secureCookies = options.secureCookies ?? process.env.COOKIE_SECURE !== 'false';
@@ -126,6 +128,44 @@ export function createApiServer(options: ApiOptions = {}) {
 
     if (req.method === 'GET' && url.pathname === '/healthz') {
       send(res, 200, { ok: true, service: 'dur-api', version: '0.3.0' });
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/v1/indexer/status') {
+      const checkpoint = chainEvents.getCheckpoint('ton-testnet');
+      send(res, 200, {
+        network: 'ton-testnet',
+        mode: 'manual_sync',
+        checkpoint,
+        trust: 'provider_indexed_data_unverified',
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/v1/indexer/events') {
+      const network = url.searchParams.get('network') ?? 'ton-testnet';
+      if (network !== 'ton-testnet') {
+        send(res, 400, { error: 'unsupported_network', requestId });
+        return;
+      }
+      const rawLimit = url.searchParams.get('limit');
+      const limit = rawLimit === null ? 50 : Number(rawLimit);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        send(res, 400, { error: 'invalid_limit', requestId });
+        return;
+      }
+      const requestedStatus = url.searchParams.get('status');
+      const verificationStatus = requestedStatus === 'verified' || requestedStatus === 'unverified' ||
+        requestedStatus === 'quarantined' ? requestedStatus : undefined;
+      if (requestedStatus !== null && !verificationStatus) {
+        send(res, 400, { error: 'invalid_verification_status', requestId });
+        return;
+      }
+      send(res, 200, {
+        network,
+        events: chainEvents.listEvents({ network, limit, verificationStatus }),
+        trust: 'provider_indexed_data_unverified',
+      });
       return;
     }
 

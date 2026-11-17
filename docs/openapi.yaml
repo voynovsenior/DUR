@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: DUR API
-  version: 0.1.0
-  description: Read-only development preview API. Protocol capabilities are not yet implemented.
+  version: 0.3.0
+  description: Development preview API. Some identity, issuer and manual Testnet indexer foundations are implemented; reputation and escrow are not.
 servers:
   - url: http://localhost:8787
 paths:
@@ -20,7 +20,7 @@ paths:
                 properties:
                   ok: { type: boolean, const: true }
                   service: { type: string, const: dur-api }
-                  version: { type: string, example: 0.1.0 }
+                  version: { type: string, example: 0.3.0 }
   /v1/status:
     get:
       summary: Protocol capability status
@@ -41,9 +41,61 @@ paths:
                     type: object
                     properties:
                       reputation: { type: string, const: not_implemented }
-                      attestations: { type: string, const: not_implemented }
+                      attestations: { type: string, const: issuer_registry_available }
                       escrow: { type: string, const: not_implemented }
-                      chainIndexing: { type: string, const: not_implemented }
+                      chainIndexing: { type: string, const: manual_testnet_sync_available }
+  /v1/indexer/status:
+    get:
+      summary: Testnet indexer checkpoint status
+      responses:
+        '200':
+          description: Manual ingestion checkpoint and explicit provider trust boundary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [network, mode, checkpoint, trust]
+                properties:
+                  network: { type: string, const: ton-testnet }
+                  mode: { type: string, const: manual_sync }
+                  checkpoint:
+                    oneOf:
+                      - type: object
+                        required: [network, seqno, rootHash, fileHash]
+                        properties:
+                          network: { type: string }
+                          seqno: { type: integer }
+                          rootHash: { type: string }
+                          fileHash: { type: string }
+                      - type: 'null'
+                  trust: { type: string, const: provider_indexed_data_unverified }
+  /v1/indexer/events:
+    get:
+      summary: List recent indexed Testnet events
+      parameters:
+        - name: network
+          in: query
+          schema: { type: string, enum: [ton-testnet], default: ton-testnet }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - name: status
+          in: query
+          schema: { type: string, enum: [verified, unverified, quarantined] }
+      responses:
+        '200':
+          description: Indexed events; provider data is explicitly unverified
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [network, events, trust]
+                properties:
+                  network: { type: string, const: ton-testnet }
+                  events: { type: array, items: { type: object } }
+                  trust: { type: string, const: provider_indexed_data_unverified }
+        '400':
+          description: Invalid network or query filter
   /v1/profiles/{identifier}:
     get:
       summary: Reputation profile placeholder

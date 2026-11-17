@@ -48,7 +48,7 @@ Lists network-qualified wallets linked to the current authenticated Telegram acc
 
 Required server environment:
 - `TON_APP_DOMAIN` — exact dApp hostname without scheme or path (must be a valid dApp domain).
-- `TON_NETWORK_ID` — TON global network ID; defaults to `-3` (Testnet).
+- `TON_NETWORK_ID` — must be `-3` (TON Testnet) for the current verifier; other networks are rejected.
 
 Supported fixed-key wallet versions currently include V1R1–V3R2 and V4R2. V4R1, V5, WalletTg and other unrecognized code hashes are rejected until separately implemented and reviewed.
 
@@ -96,7 +96,7 @@ Optional environment variables:
 - `COOKIE_SECURE` — defaults to secure cookies; set false only for local HTTP development.
 - `CORS_ORIGIN` — exact allowed frontend origin.
 - `TON_APP_DOMAIN` — exact public dApp hostname (required for wallet linking).
-- `TON_NETWORK_ID` — defaults to `-3` (TON Testnet).
+- `TON_NETWORK_ID` — must be `-3` (TON Testnet); other networks are rejected.
 - `DUR_ADMIN_TOKEN` — optional server-only credential for creating issuers.
 
 ## Error model

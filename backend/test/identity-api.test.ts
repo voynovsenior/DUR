@@ -179,6 +179,7 @@ test('issuer issuance requires a registered schema and current wallet-owner cons
     });
     assert.equal(schema.status, 201);
     assert.equal((await fetch(`${base}/v1/schemas/dur.delivery.completed/1`)).status, 200);
+    assert.equal((await fetch(`${base}/v1/schemas`)).status, 200);
 
     const login = await fetch(`${base}/v1/auth/telegram`, {
       method: 'POST',
@@ -201,6 +202,8 @@ test('issuer issuance requires a registered schema and current wallet-owner cons
     });
     assert.equal(created.status, 201);
     const issuer = await created.json() as { issuer: { id: string }; apiKey: string };
+    const issuerDirectory = await fetch(`${base}/v1/issuers`);
+    assert.equal(issuerDirectory.status, 200);
     const subjectId = `wallet:-3:${walletAddress}`;
 
     const issue = (claim: unknown) => fetch(`${base}/v1/attestations`, {

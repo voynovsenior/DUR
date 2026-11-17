@@ -9,7 +9,8 @@ export async function runIndexerOnce() {
   try {
     const store = new ChainEventStore(db);
     const adapter = new TonCenterIndexer();
-    const maxBlocks = Number(process.env.INDEXER_MAX_BLOCKS ?? 1);
+    const configuredMax = process.env.INDEXER_MAX_BLOCKS?.trim();
+    const maxBlocks = configuredMax ? Number(configuredMax) : 1;
     const configuredStart = process.env.INDEXER_START_SEQNO?.trim();
     const startSeqno = configuredStart ? Number(configuredStart) : undefined;
     const result = await adapter.syncAvailable(store, startSeqno, maxBlocks);

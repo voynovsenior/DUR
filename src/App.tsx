@@ -31,7 +31,9 @@ useEffect(()=>{
 },[tg]);
 useEffect(()=>tonConnectUI.onStatusChange(async connectedWallet=>{
  const item=connectedWallet?.connectItems?.tonProof;
- if(!connectedWallet||!item||!('proof' in item))return;
+ if(!connectedWallet)return;
+ if(!item){setWalletStatus('Wallet connected, but no TON proof was returned');return;}
+ if(!('proof' in item)){setWalletStatus('This wallet did not provide TON proof support');return;}
  try{
   const response=await fetch(`${apiBase}/v1/auth/ton/verify`,{method:'POST',headers:{'content-type':'application/json'},credentials:'include',body:JSON.stringify({address:connectedWallet.account.address,network:connectedWallet.account.chain,public_key:connectedWallet.account.publicKey||undefined,proof:{...item.proof,state_init:connectedWallet.account.walletStateInit}})});
   if(!response.ok)throw new Error('proof rejected');

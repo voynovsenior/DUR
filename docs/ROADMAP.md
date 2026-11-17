@@ -53,7 +53,8 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [ ] Independent security review before mainnet consideration
 
 ## Later
-- [ ] Developer SDK and integration examples
+- [x] TypeScript issuer SDK for attestation issue/read/revoke operations
+- [ ] Broader public profile/query SDK and integration examples
 - [ ] Developer documentation portal
 - [ ] Mainnet readiness assessment
 - [ ] Consider multi-chain adapters only after TON implementation is stable

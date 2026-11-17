@@ -24,9 +24,9 @@ This document describes design requirements; it is not an audit report. The curr
 | Contract exploit | Tests, static analysis, threat modeling and independent audit before mainnet |
 
 ## Identity implementation status
-- Telegram init-data HMAC verification exists as a tested helper; it is not yet connected to a login route or session store.
+- Telegram init-data HMAC verification is connected to a login route; accounts and sessions are stored in SQLite. This is not an audited production authentication service.
 - TON Connect proof verification is not implemented.
-- No authenticated write endpoints are enabled.
+- Only Telegram identity/session routes are authenticated; reputation, attestation, escrow and other privileged write endpoints remain unavailable.
 - Never trust `initDataUnsafe`, a client-supplied wallet address, or a client-supplied public key as proof of identity.
 
 ## Safe development rules

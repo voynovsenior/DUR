@@ -44,6 +44,54 @@ paths:
                       attestations: { type: string, const: issuer_registry_available }
                       escrow: { type: string, const: not_implemented }
                       chainIndexing: { type: string, const: manual_testnet_sync_available }
+  /v1/auth/consents:
+    get:
+      summary: List consent grants owned by the authenticated user
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Consent grants for the current account
+        '401':
+          description: Authentication required
+    post:
+      summary: Grant an issuer permission to attest a linked wallet under one schema
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [walletAddress, issuerId, schemaId, schemaVersion, purpose]
+              properties:
+                walletAddress: { type: string }
+                issuerId: { type: string }
+                schemaId: { type: string }
+                schemaVersion: { type: integer, minimum: 1 }
+                purpose: { type: string, minLength: 5, maxLength: 256 }
+                expiresAt: { type: integer }
+      responses:
+        '201':
+          description: Consent grant created
+        '403':
+          description: Wallet is not linked to the authenticated account
+  /v1/auth/consents/{id}/revoke:
+    post:
+      summary: Revoke a consent grant owned by the authenticated user
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Consent revoked
+        '404':
+          description: Consent not found or already revoked
   /v1/admin/schemas:
     post:
       summary: Register an immutable attestation JSON Schema version
@@ -159,3 +207,7 @@ components:
     AdminBearer:
       type: http
       scheme: bearer
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: dur_session

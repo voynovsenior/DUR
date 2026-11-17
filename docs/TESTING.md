@@ -1,30 +1,40 @@
 # Testing strategy
 
 ## Current automated coverage
-The API test suite currently checks:
-- health endpoint returns a successful service response;
-- profile placeholder returns HTTP 501 rather than inventing reputation data.
 
-Run:
+Run all checks:
+
 ~~~bash
 npm test
 npm run build
 ~~~
 
+The automated suite covers:
+- API health and status behavior;
+- explicit not-implemented profile response;
+- Telegram init-data HMAC validation, tampering, duplicate keys, and freshness;
+- Telegram login route and session cookie issuance;
+- authenticated account lookup;
+- invalid signature rejection;
+- logout revocation;
+- disabled auth when the bot token is not configured.
+
+Identity API tests use an in-memory SQLite database and synthetic Telegram test data. They do not require a real bot token or Telegram account.
+
 ## Required future test layers
 
 ### API
-- method and route behavior;
-- schema validation;
-- error response consistency;
+- request schema validation and content-type enforcement;
 - CORS allowlist behavior;
-- request size and rate limits before public deployment.
+- request size and rate limits before public deployment;
+- database backup and recovery.
 
 ### Identity
-- valid and invalid Telegram init data;
-- expired authentication payloads;
-- valid and invalid wallet proofs;
-- address normalization and network mismatch.
+- persistent single-use TON wallet challenges;
+- valid and invalid wallet proofs for every explicitly supported wallet version;
+- address normalization and network mismatch;
+- session rotation when a wallet is linked;
+- expiry and revocation under concurrent requests.
 
 ### Attestations
 - issuer authorization;

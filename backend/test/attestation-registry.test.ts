@@ -65,3 +65,20 @@ test('attestation expires automatically and another issuer cannot revoke it', ()
     db.close();
   }
 });
+
+test('issuer suspension blocks API key authentication and revocation is terminal', () => {
+  const db = openDatabase(':memory:');
+  try {
+    const registry = new AttestationRegistry(db);
+    const created = registry.createIssuer({ displayName: 'Policy Test', issuerType: 'marketplace' }, 100);
+    assert.equal(registry.setIssuerStatus(created.issuer.id, 'suspended', 101), true);
+    assert.equal(registry.authenticateIssuer(created.apiKey), null);
+    assert.equal(registry.setIssuerStatus(created.issuer.id, 'active', 102), true);
+    assert.equal(registry.authenticateIssuer(created.apiKey)?.id, created.issuer.id);
+    assert.equal(registry.setIssuerStatus(created.issuer.id, 'revoked', 103), true);
+    assert.equal(registry.setIssuerStatus(created.issuer.id, 'active', 104), false);
+    assert.equal(registry.authenticateIssuer(created.apiKey), null);
+  } finally {
+    db.close();
+  }
+});

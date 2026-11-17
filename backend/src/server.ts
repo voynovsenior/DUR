@@ -32,7 +32,7 @@ function readCookie(req: IncomingMessage, name: string): string | undefined {
   for (const part of cookie.split(';')) {
     const index = part.indexOf('=');
     if (index < 0) continue;
-    if (part.slice(0, index).trim() === name) return decodeURIComponent(part.slice(index + 1).trim());
+    if (part.slice(0, index).trim() === name) {\n      try { return decodeURIComponent(part.slice(index + 1).trim()); } catch { return undefined; }\n    }
   }
   return undefined;
 }
@@ -84,7 +84,7 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
-    if (allowedOrigin && origin && origin !== allowedOrigin) {
+    if (allowedOrigin && origin !== allowedOrigin) {
       send(res, 403, { error: 'origin_not_allowed', requestId });
       return;
     }

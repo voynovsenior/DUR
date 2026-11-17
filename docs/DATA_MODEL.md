@@ -17,7 +17,7 @@ Proposed fields:
 Wallet ownership must be proven with a server-verified wallet proof. A client-provided address alone is not proof.
 
 ## Issuer
-Represents an entity allowed to issue a defined class of attestations. The initial SQLite registry, admin creation endpoint and issuer API-key authentication are implemented. New issuers default to the `unverified` trust tier.
+Represents an entity allowed to issue a defined class of attestations. The initial SQLite registry, admin creation endpoint, issuer API-key authentication, and versioned JSON Schema registration are implemented. New issuers default to the `unverified` trust tier.
 
 Proposed fields:
 - `issuer_id`;
@@ -31,7 +31,7 @@ Proposed fields:
 Trust tiers must be governed by explicit policies and must not be silently inferred from transaction volume.
 
 ## Attestation
-Represents a structured claim made by an issuer about a subject. Persistence, issuer-authenticated issuance, expiry, revocation and event history are implemented. Schema IDs and versions are stored, but claim-specific JSON Schema validation is still pending.
+Represents a structured claim made by an issuer about a subject. Persistence, issuer-authenticated issuance, expiry, revocation and event history are implemented. Schema IDs and versions are immutable and backed by a persisted JSON Schema registry. Issuance is rejected unless the claim validates against the registered version. Subject consent remains pending.
 
 Proposed fields:
 - `attestation_id`;

@@ -49,7 +49,7 @@ The first UI package includes:
 | Telegram bot | Starter implementation |
 | TON Connect | UI integration; manifest must be configured |
 | Reputation engine | Not implemented |
-| Attestation registry | Issuer-authenticated issuance/revocation with immutable JSON Schema validation; subject consent and issuer trust policy pending |
+| Attestation registry | Issuer-authenticated issuance/revocation with immutable JSON Schema validation; issuer trust policy and dispute workflow pending |
 | Developer SDK | TypeScript issuer SDK for attestation operations; broader profile/query SDK pending |
 | Escrow contracts | Not implemented |
 | Backend API | Telegram authentication, TON Proof wallet linking, issuer/schema APIs, and read-only indexer endpoints; reputation and escrow APIs pending |

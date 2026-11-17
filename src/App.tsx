@@ -72,14 +72,19 @@ export default function App() {
   useEffect(() => {
     if (!telegramAuthRequest) {
       const initData = tg?.initData || '';
-      telegramAuthRequest = initData
-        ? fetch(`${apiBase}/v1/auth/telegram`, {
+      telegramAuthRequest = fetch(`${apiBase}/v1/auth/me`, { credentials: 'include' })
+        .then(response => response.ok)
+        .catch(() => false)
+        .then(existingSession => {
+          if (existingSession) return true;
+          if (!initData) return false;
+          return fetch(`${apiBase}/v1/auth/telegram`, {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({ initData }),
-          }).then(response => response.ok)
-        : Promise.resolve(false);
+          }).then(response => response.ok);
+        });
     }
     let active = true;
     telegramAuthRequest.then(ok => {

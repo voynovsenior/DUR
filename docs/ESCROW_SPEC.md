@@ -1,6 +1,6 @@
 # DUR Modular Escrow — Testnet Specification Draft
 
-Status: specification only. No executable escrow contract is deployed or available for real funds.
+Status: specification plus a pure off-chain state-transition model with tests. No executable TON escrow contract is deployed or available for real funds. The model does not verify signatures, participant authority, deadlines at chain level, or deposited funds.
 
 ## 1. Design boundary
 

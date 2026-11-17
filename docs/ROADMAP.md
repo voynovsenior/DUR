@@ -11,14 +11,18 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [ ] Mobile QA inside Telegram
 
 ## 0.2 — Application foundation
-- [x] Read-only backend API skeleton (health, status, explicit not-implemented profile route)
+- [x] Read-only backend API skeleton
 - [x] Initial API tests and OpenAPI contract
 - [x] Initial conceptual data model
 - [x] Telegram init data HMAC verification helper and unit tests
-- [ ] Telegram login route and persistent sessions
-- [ ] Wallet proof verification
-- [ ] Database schema and migrations
-- [ ] API error model and request logging
+- [x] Telegram login HTTP route
+- [x] Persistent SQLite account and session store
+- [x] Session expiry, revocation, and logout
+- [ ] TON Connect proof verification
+- [ ] Persistent single-use wallet challenge store
+- [ ] Database migrations and backup strategy
+- [ ] Distributed rate limiting and operational logging
+- [ ] Mobile end-to-end authentication QA
 
 ## 0.3 — Evidence and attestations
 - [ ] Attestation schema and versioning

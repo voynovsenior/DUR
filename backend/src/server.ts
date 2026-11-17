@@ -590,10 +590,11 @@ export function createApiServer(options: ApiOptions = {}) {
           return;
         }
         const now = Math.floor(Date.now() / 1000);
-        const expiresAt = body.expiresAt === undefined ? null : body.expiresAt as number | null;
-        if (expiresAt !== null &&
-            (!Number.isSafeInteger(expiresAt) || (expiresAt as number) <= now ||
-             (expiresAt as number) > now + 365 * 24 * 60 * 60)) {
+        const expiresAt = body.expiresAt === undefined || body.expiresAt === null
+          ? now + 90 * 24 * 60 * 60
+          : body.expiresAt as number;
+        if (!Number.isSafeInteger(expiresAt) || expiresAt <= now ||
+            expiresAt > now + 365 * 24 * 60 * 60) {
           send(res, 400, { error: 'invalid_consent_expiry', requestId });
           return;
         }

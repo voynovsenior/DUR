@@ -1,7 +1,7 @@
 # Architecture
 
 ## Scope
-DUR is planned as a modular application and protocol layer for TON. This repository currently contains a frontend prototype, a minimal Telegram bot, a backend API foundation with Telegram init-data verification and persistent SQLite sessions, and project documentation. The limited TON wallet proof verifier and wallet-link routes are implemented in code; real-wallet Testnet QA and deployment remain pending. The indexer, persistent attestation registry, reputation engine and escrow contracts remain unimplemented.
+DUR is planned as a modular application and protocol layer for TON. This repository currently contains a frontend prototype, a minimal Telegram bot, a backend API foundation with Telegram init-data verification and persistent SQLite sessions, and project documentation. The limited TON wallet proof verifier and wallet-link routes are implemented in code; real-wallet Testnet QA and deployment remain pending. The issuer-authenticated attestation registry foundation is implemented; registered claim schemas and subject-consent workflows remain pending. The indexer, reputation engine and escrow contracts remain unimplemented.
 
 ## Components
 1. **Telegram Mini App** — presentation and user interaction; treat it as an untrusted client.
@@ -9,7 +9,7 @@ DUR is planned as a modular application and protocol layer for TON. This reposit
 3. **Identity Layer** — verifies Telegram init data, manages persistent sessions, and links supported TON wallets after server-side `ton_proof` verification.
 4. **Application API** — currently exposes health, capability status, Telegram authentication/session endpoints, and TON wallet challenge/linking endpoints; reputation, attestation and escrow data endpoints remain planned.
 5. **Reputation Engine** — planned deterministic computation over eligible evidence.
-6. **Attestation Registry** — planned issuer and attestation lifecycle management.
+6. **Attestation Registry** — issuer registration, API-key authentication, claim issuance, expiry, revocation and event history are implemented as a foundation; schema validation and subject-consent workflows remain planned.
 7. **Escrow module** — planned independent contract and application module.
 8. **Indexer / verifier** — planned ingestion of canonical TON data and event provenance checks.
 9. **TON contracts** — planned on-chain state and events; Testnet first.

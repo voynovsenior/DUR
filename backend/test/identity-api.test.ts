@@ -251,3 +251,26 @@ test('read-only indexer endpoints expose Testnet status and validate query filte
     assert.equal(invalid.status, 400);
   });
 });
+test('CORS preflight permits the authorization header only for the configured origin', async () => {
+  const db = openDatabase(':memory:');
+  const server = createApiServer({ db, allowedOrigin: 'https://app.dur.example', secureCookies: false });
+  await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  try {
+    const allowed = await fetch(`http://127.0.0.1:${address.port}/v1/indexer/status`, {
+      method: 'OPTIONS',
+      headers: { origin: 'https://app.dur.example', 'access-control-request-headers': 'authorization,content-type' },
+    });
+    assert.equal(allowed.status, 204);
+    assert.equal(allowed.headers.get('access-control-allow-headers'), 'content-type, authorization');
+
+    const denied = await fetch(`http://127.0.0.1:${address.port}/v1/indexer/status`, {
+      headers: { origin: 'https://evil.example' },
+    });
+    assert.equal(denied.status, 403);
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    db.close();
+  }
+});

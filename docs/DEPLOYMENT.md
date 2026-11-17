@@ -19,12 +19,21 @@ The repository is a prototype. Deployment makes the preview accessible; it does 
 ## TON Connect
 Replace the placeholder values in public/tonconnect-manifest.json with the production HTTPS origin and a publicly accessible icon. The manifest must be served over HTTPS.
 
+## API hosting
+Run npm run api on a Node.js host with a persistent disk for SQLite. Configure private server environment variables:
+- TELEGRAM_BOT_TOKEN
+- DUR_DATABASE_PATH (optional; defaults to ./data/dur.sqlite)
+- COOKIE_SECURE=true
+- CORS_ORIGIN (exact HTTPS frontend origin)
+
+Keep the database directory out of static hosting. Back up the SQLite database securely. The API currently supports Telegram login/session endpoints; TON wallet proof verification is not implemented.
+
 ## Bot hosting
 Run npm run bot on a Node.js host with private environment variables:
 - BOT_TOKEN
 - MINI_APP_URL
 
-Never place BOT_TOKEN in VITE_ variables: those are bundled into client-side assets. Do not commit secrets.
+Never place BOT_TOKEN or TELEGRAM_BOT_TOKEN in VITE_ variables: those are bundled into client-side assets. Do not commit secrets.
 
 ## Telegram Serverless
 Telegram Serverless access is not assumed. If access becomes available, evaluate it as an optional bot runtime. Keep the bot logic portable and keep protocol backend responsibilities separate.

@@ -42,6 +42,19 @@ export class AttestationRegistry {
     };
   }
 
+  setIssuerStatus(issuerId: string, status: 'active' | 'suspended' | 'revoked', nowSeconds = Math.floor(Date.now() / 1000)) {
+    const transaction = this.db.transaction(() => {
+      const current = this.db.prepare('SELECT status FROM issuers WHERE id = ?')
+        .get(issuerId) as { status: string } | undefined;
+      if (!current || current.status === 'revoked') return false;
+      if (status === current.status) return true;
+      this.db.prepare('UPDATE issuers SET status = ?, updated_at = ? WHERE id = ?')
+        .run(status, nowSeconds, issuerId);
+      return true;
+    });
+    return transaction();
+  }
+
   authenticateIssuer(apiKey: string | undefined): IssuerPublicRecord | null {
     if (!apiKey || apiKey.length > 256) return null;
     const row = this.db.prepare(`

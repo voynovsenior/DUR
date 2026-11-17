@@ -80,6 +80,10 @@ Returns a registered schema version.
 
 Requires `Authorization: Bearer <DUR_ADMIN_TOKEN>` and JSON `{ "displayName": "Marketplace", "issuerType": "marketplace" }`. Creates an active issuer and returns its API key once. The server stores only the key digest. Keep `DUR_ADMIN_TOKEN` private and do not place it in frontend variables.
 
+### POST /v1/admin/issuers/{id}/status
+
+Requires the server-side admin Bearer token and JSON `{ "status": "active|suspended|revoked" }`. Suspension immediately disables issuer API-key authentication. Revocation is terminal and cannot be reversed.
+
 ### POST /v1/issuers/me/revoke-key
 
 Requires the issuer's current API key. Revokes that key immediately; it cannot be used again.

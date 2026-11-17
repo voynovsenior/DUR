@@ -1,6 +1,6 @@
 # DUR data model
 
-The entities below define the protocol model. The backend currently includes a validated canonical claim helper in `backend/src/attestations/model.ts`; persistent issuer and attestation registry tables and API routes are not implemented yet.
+The entities below define the protocol model. The backend includes a canonical claim helper and a persistent issuer/attestation registry with issuer API keys, issuance, expiry, revocation and event history. Subject-consent workflows and registered JSON Schema validation remain unimplemented.
 
 This document is a design proposal, not a deployed database schema. It defines conceptual entities for later review before migrations are written.
 
@@ -17,7 +17,7 @@ Proposed fields:
 Wallet ownership must be proven with a server-verified wallet proof. A client-provided address alone is not proof.
 
 ## Issuer
-Represents an entity allowed to issue a defined class of attestations.
+Represents an entity allowed to issue a defined class of attestations. The initial SQLite registry, admin creation endpoint and issuer API-key authentication are implemented. New issuers default to the `unverified` trust tier.
 
 Proposed fields:
 - `issuer_id`;
@@ -31,7 +31,7 @@ Proposed fields:
 Trust tiers must be governed by explicit policies and must not be silently inferred from transaction volume.
 
 ## Attestation
-Represents a structured claim made by an issuer about a subject.
+Represents a structured claim made by an issuer about a subject. Persistence, issuer-authenticated issuance, expiry, revocation and event history are implemented. Schema IDs and versions are stored, but claim-specific JSON Schema validation is still pending.
 
 Proposed fields:
 - `attestation_id`;
@@ -74,6 +74,9 @@ Proposed fields:
 - `source_checkpoint`.
 
 Every displayed value must be explainable through its methodology version and supporting evidence references.
+
+## Attestation events
+Issuance, revocation and expiry transitions are stored as separate events. Issuer credentials are stored as SHA-256 digests and are returned only once at creation.
 
 ## Disputes and revocation
 Disputed or revoked evidence must remain auditable. Do not physically erase history when a correction or revocation is required; append a status transition with actor, timestamp, reason and reference.

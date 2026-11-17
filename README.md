@@ -11,7 +11,7 @@
   <a href="https://github.com/voynovsenior/DUR/actions/workflows/ci.yml"><img src="https://github.com/voynovsenior/DUR/actions/workflows/ci.yml/badge.svg" alt="CI"/></a>
   <img src="https://img.shields.io/badge/network-TON%20Testnet-0098EA" alt="TON Testnet"/>
   <img src="https://img.shields.io/badge/status-early%20development-orange" alt="Early development"/>
-  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version 0.1.0"/>
+  <img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version 0.3.0"/>
 </p>
 
 DUR is an early-stage project exploring a modular trust layer for applications in the TON ecosystem. It aims to make reputation portable, attestations verifiable, and escrow components reusable by third-party applications.

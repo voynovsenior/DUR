@@ -79,3 +79,16 @@ test('indexer store can quarantine a previously ingested event with an audit rea
   assert.equal(store.listEvents({ network: 'ton-testnet' })[0].verificationStatus, 'quarantined');
   db.close();
 });
+
+test('indexer store rejects non-canonical addresses and out-of-range logical times', () => {
+  const { db, store } = setup();
+  assert.throws(() => store.ingest({
+    ...batch,
+    events: [{ ...batch.events[0], account: 'not-an-address' }],
+  }), /invalid_event_account/);
+  assert.throws(() => store.ingest({
+    ...batch,
+    events: [{ ...batch.events[0], lt: '18446744073709551616' }],
+  }), /invalid_event_lt/);
+  db.close();
+});

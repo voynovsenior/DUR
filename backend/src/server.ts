@@ -142,7 +142,7 @@ export function createApiServer(options: ApiOptions = {}) {
           reputation: 'not_implemented',
           attestations: 'issuer_registry_available',
           escrow: 'not_implemented',
-          chainIndexing: 'not_implemented',
+          chainIndexing: 'manual_testnet_sync_available',
         },
       });
       return;

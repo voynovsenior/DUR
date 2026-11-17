@@ -81,7 +81,7 @@ export class ChainEventStore {
 
   ingest(batch: IndexerBatch, nowSeconds = Math.floor(Date.now() / 1000)) {
     validateCheckpoint(batch.checkpoint);
-    if (!Array.isArray(batch.events) || batch.events.length > 500) throw new Error('invalid_event_batch');
+    if (!Array.isArray(batch.events) || batch.events.length > 10_000) throw new Error('invalid_event_batch');
     for (const event of batch.events) {
       validateEvent(event);
       if (event.network !== batch.checkpoint.network) throw new Error('event_network_mismatch');

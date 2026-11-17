@@ -9,7 +9,7 @@ The repository is a prototype. Deployment makes the preview accessible; it does 
 3. Set the output directory to dist.
 4. Configure `VITE_TONCONNECT_MANIFEST_URL` with the full HTTPS manifest URL.
 5. Set `VITE_API_BASE_URL` to the API origin or leave it empty when the API is reverse-proxied under the app origin.
-5. Deploy and verify that the app and /tonconnect-manifest.json load publicly.
+6. Deploy and verify that the app and /tonconnect-manifest.json load publicly.
 
 ## Telegram Mini App
 1. Configure the bot in BotFather.

@@ -51,7 +51,7 @@ The first UI package includes:
 | Reputation engine | Not implemented |
 | Attestation registry | Not implemented |
 | Escrow contracts | Not implemented |
-| Backend API | Telegram authentication/session foundation implemented; other protocol APIs pending |
+| Backend API | Telegram authentication, session management and limited TON Proof wallet linking implemented; reputation/attestation/escrow APIs pending |
 | Chain indexer | Not implemented |
 
 ## Repository structure
@@ -113,7 +113,7 @@ The committed manifest contains placeholders. Wallet connection is not fully con
 
 ### Run the API
 
-Set `TELEGRAM_BOT_TOKEN` in the server environment (the backend loads local `.env` files through dotenv), then run:
+Set `TELEGRAM_BOT_TOKEN`, `TON_APP_DOMAIN` (your exact dApp hostname), and `TON_NETWORK_ID=-3` in the server environment (the backend loads local `.env` files through dotenv), then run:
 
 ```bash
 npm run api
@@ -121,7 +121,7 @@ npm run api
 
 The API creates its SQLite database at `./data/dur.sqlite` by default. Set `DUR_DATABASE_PATH` to change the location. For local HTTP testing only, set `COOKIE_SECURE=false`; deployed environments must keep Secure cookies enabled and configure `CORS_ORIGIN` to the exact HTTPS frontend origin.
 
-Telegram login is available at `POST /v1/auth/telegram` and uses raw `Telegram.WebApp.initData`. Wallet ownership verification with TON Connect `ton_proof` is not implemented yet.
+Telegram login is available at `POST /v1/auth/telegram` and uses raw `Telegram.WebApp.initData`. TON Connect `ton_proof` wallet linking is available for supported standard wallets when `TON_APP_DOMAIN` is configured. The verifier currently rejects unrecognized wallet code versions; CI validation and deployment QA are still pending.
 
 ### Run the Telegram bot
 

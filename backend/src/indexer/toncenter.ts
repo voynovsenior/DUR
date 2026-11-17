@@ -50,6 +50,7 @@ export type TonCenterIndexerOptions = {
 function normalizeHash(value: string | undefined): string | undefined {
   if (!value) return undefined;
   if (/^[a-fA-F0-9]{64}$/.test(value)) return value.toLowerCase();
+  if (!/^[A-Za-z0-9+/_-]{43}=?$/.test(value)) return undefined;
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
   try {
     const bytes = Buffer.from(normalized, 'base64');

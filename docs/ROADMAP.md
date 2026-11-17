@@ -35,8 +35,11 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [x] Issuer API key revocation
 - [ ] Registered JSON Schema validation and subject-consent workflow
 - [ ] Issuer trust-tier policy and administrative suspension workflow
-- [ ] Canonical TON event verification
-- [ ] Duplicate and replay protection
+- [x] Durable idempotent chain-event store and checkpoint migrations
+- [x] Manual TON Center API v3 Testnet ingestion adapter (records unverified provider data)
+- [ ] Cryptographic block/transaction proof verification
+- [ ] Contract-specific event decoders and verified event policy
+- [ ] Automated continuous indexer operation and recovery
 
 ## 0.4 — Reputation
 - [ ] Public methodology document

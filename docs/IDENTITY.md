@@ -45,7 +45,7 @@ Revokes the server-side session and expires the cookie.
 
 ### Session controls
 
-- SQLite persistence for accounts and sessions;
+- SQLite persistence for accounts and sessions with transactional schema migration version 1;
 - 256-bit random opaque session tokens;
 - only token digests are stored;
 - HttpOnly and SameSite=Strict cookies;
@@ -79,6 +79,10 @@ Required sequence:
 A wallet proof must be bound to the expected dApp domain and requested TON network. Testnet and mainnet identities must remain network-qualified.
 
 The official TON guide specifies the proof byte layout, signature digest, address derivation, public-key resolution, timestamp checks, and atomic challenge consumption: [TON Docs — Authenticate users with ton_proof](https://docs.ton.org/applications/ton-connect/how-to/ton-proof).
+
+## Database migrations
+
+The backend creates a `schema_migrations` table and applies the initial identity schema transactionally. Future schema changes must be added as ordered migrations; backup and restore procedures remain outstanding.
 
 ## Production hardening still required
 

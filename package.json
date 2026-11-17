@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && npm run typecheck:backend && vite build",
+    "build": "tsc -b && npm run typecheck:backend && npm run build:sdk && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "bot": "tsx bot/src/index.ts",
     "api": "tsx backend/src/server.ts",
-    "test": "node --import tsx --test backend/test/*.test.ts",
-    "typecheck:backend": "tsc --noEmit -p tsconfig.backend.json"
+    "test": "node --import tsx --test backend/test/*.test.ts sdk/test/*.test.ts",
+    "typecheck:backend": "tsc --noEmit -p tsconfig.backend.json",
+    "build:sdk": "tsc -p tsconfig.sdk.json"
   },
   "dependencies": {
     "@tonconnect/ui-react": "^2.3.0",
@@ -32,5 +33,8 @@
     "vite": "^6.0.7",
     "@types/node": "^22.10.5",
     "@types/better-sqlite3": "^7.6.12"
-  }
+  },
+  "workspaces": [
+    "sdk"
+  ]
 }

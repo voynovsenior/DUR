@@ -16,7 +16,7 @@
 
 DUR is an early-stage project exploring a modular trust layer for applications in the TON ecosystem. It aims to make reputation portable, attestations verifiable, and escrow components reusable by third-party applications.
 
-> **Development status:** prototype / early development. This repository does not yet implement production reputation scoring, a live attestation registry, or executable escrow smart contracts. The current Mini App is an interface prototype. No real funds should be sent to or managed by this software.
+> **Development status:** prototype / early development. This repository does not yet implement production reputation scoring, subject-consented attestations with registered claim schemas, or executable escrow smart contracts. The current Mini App is an interface prototype. No real funds should be sent to or managed by this software.
 
 ## Product vision
 
@@ -49,7 +49,7 @@ The first UI package includes:
 | Telegram bot | Starter implementation |
 | TON Connect | UI integration; manifest must be configured |
 | Reputation engine | Not implemented |
-| Attestation registry | Not implemented |
+| Attestation registry | Issuer-authenticated issuance/revocation foundation; schema validation and subject consent pending |
 | Escrow contracts | Not implemented |
 | Backend API | Telegram authentication, session management and limited TON Proof wallet linking implemented; reputation/attestation/escrow APIs pending |
 | Chain indexer | Not implemented |

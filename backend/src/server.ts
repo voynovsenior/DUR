@@ -121,6 +121,11 @@ export function createApiServer(options: ApiOptions = {}) {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/auth/telegram') {
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
       if (!botToken) {
         send(res, 503, { error: 'telegram_auth_not_configured', requestId });
         return;

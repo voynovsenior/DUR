@@ -153,7 +153,7 @@ Optional environment variables:
 
 ## Error model
 
-Responses are JSON and use `Cache-Control: no-store`. Errors include a machine-readable `error` field and request identifier where applicable.
+Responses are JSON and use `Cache-Control: no-store`. Errors include a machine-readable `error` field and request identifier where applicable. Sensitive authentication, wallet-proof, consent and issuer-write routes have process-local fixed-window rate limits and return HTTP 429 with `Retry-After`; production deployments must also enforce edge-level or distributed rate limits.
 
 ## Security boundary
 

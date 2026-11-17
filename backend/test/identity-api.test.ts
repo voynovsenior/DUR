@@ -21,14 +21,14 @@ function initData(authDate = now) {
   return new URLSearchParams({ ...fields, hash }).toString();
 }
 
-async function withServer(run: (base: string) => Promise<void>) {
+async function withServer(run: (base: string, db: ReturnType<typeof openDatabase>) => Promise<void>) {
   const db = openDatabase(':memory:');
   const server = createApiServer({ db, botToken: token, secureCookies: false, tonProofDomain: 'dur.example', tonNetworkId: '-3', adminToken: 'unit-test-admin-value' });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   assert.ok(address && typeof address !== 'string');
   try {
-    await run(`http://127.0.0.1:${address.port}`);
+    await run(`http://127.0.0.1:${address.port}`, db);
   } finally {
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     db.close();
@@ -162,7 +162,7 @@ test('TON proof challenge requires a verified Telegram session and is bound to t
 });
 
 test('issuer admin creates an issuer and its key can issue and revoke attestations', async () => {
-  await withServer(async base => {
+  await withServer(async (base, db) => {
     const schema = await fetch(`${base}/v1/admin/schemas`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: 'Bearer unit-test-admin-value' },
@@ -181,6 +181,20 @@ test('issuer admin creates an issuer and its key can issue and revoke attestatio
     const schemaRead = await fetch(`${base}/v1/schemas/dur.delivery.completed/1`);
     assert.equal(schemaRead.status, 200);
 
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    assert.equal(login.status, 200);
+    const loginBody = await login.json() as { user: { id: string } };
+    const sessionCookie = login.headers.get('set-cookie')!.split(';')[0];
+    const walletAddress = `0:${'a'.repeat(64)}`;
+    db.prepare(`
+      INSERT INTO wallet_links (id, user_id, network, address, public_key, linked_at)
+      VALUES (?, ?, '-3', ?, ?, ?)
+    `).run('test-wallet-link', loginBody.user.id, walletAddress, 'b'.repeat(64), now);
+
     const created = await fetch(`${base}/v1/admin/issuers`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: 'Bearer unit-test-admin-value' },
@@ -190,13 +204,40 @@ test('issuer admin creates an issuer and its key can issue and revoke attestatio
     const issuer = await created.json() as { issuer: { id: string }; apiKey: string };
     assert.ok(issuer.apiKey.startsWith('dur_issuer_'));
 
+    const consent = await fetch(`${base}/v1/auth/consents`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: sessionCookie },
+      body: JSON.stringify({
+        walletAddress,
+        issuerId: issuer.issuer.id,
+        schemaId: 'dur.delivery.completed',
+        schemaVersion: 1,
+        purpose: 'Issue delivery completion attestations',
+      }),
+    });
+    assert.equal(consent.status, 201);
+    const consentBody = await consent.json() as { id: string };
+
+    const missingConsent = await fetch(`${base}/v1/attestations`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
+      body: JSON.stringify({
+        schemaId: 'dur.delivery.completed',
+        schemaVersion: 1,
+        subjectId: `wallet:-3:${walletAddress}`,
+        claim: { completed: true },
+        evidenceRefs: ['ton:transaction:abc123'],
+      }),
+    });
+    assert.equal(missingConsent.status, 201);
+
     const invalidClaim = await fetch(`${base}/v1/attestations`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
       body: JSON.stringify({
         schemaId: 'dur.delivery.completed',
         schemaVersion: 1,
-        subjectId: 'wallet:-3:0:abc123',
+        subjectId: `wallet:-3:${walletAddress}`,
         claim: { completed: 'yes' },
         evidenceRefs: ['ton:transaction:abc123'],
       }),
@@ -224,6 +265,11 @@ test('issuer admin creates an issuer and its key can issue and revoke attestatio
       body: JSON.stringify({ reason: 'Order disputed' }),
     });
     assert.equal(revoke.status, 200);
+    const revokeConsent = await fetch(`${base}/v1/auth/consents/${consentBody.id}/revoke`, {
+      method: 'POST',
+      headers: { cookie: sessionCookie },
+    });
+    assert.equal(revokeConsent.status, 200);
   });
 });
 

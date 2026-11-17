@@ -17,16 +17,22 @@ The automated suite covers:
 - authenticated account lookup;
 - invalid signature rejection;
 - logout revocation;
-- disabled auth when the bot token is not configured.
+- disabled auth when the bot token is not configured;
+- strict CORS preflight and disallowed-origin rejection;
+- process-local login rate limiting;
+- issuer administration, immutable JSON Schema registration and invalid-claim rejection;
+- wallet-owner consent grants, expiry, revocation and consent-gated attestation issuance;
+- issuer suspension and terminal revocation;
+- indexer status/event API query validation.
 
 Identity API tests use an in-memory SQLite database and synthetic Telegram test data. They do not require a real bot token or Telegram account.
 
 ## Required future test layers
 
 ### API
-- request schema validation and content-type enforcement;
-- CORS allowlist behavior;
-- request size and rate limits before public deployment;
+- distributed rate limiting and reverse-proxy configuration;
+- request size and load testing;
+- database backup and recovery;
 - database backup and recovery.
 
 ### Identity

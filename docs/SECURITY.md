@@ -18,7 +18,7 @@ This document describes design requirements; it is not an audit report. The curr
 | Fake transaction hash | Resolve and verify against canonical TON data |
 | Sybil accounts | Multi-signal risk controls; never equate one wallet with one human |
 | Collusive reviews | Counterparty concentration and graph analysis with review |
-| Malicious issuer | Issuer registration, trust tiers, revocation and evidence policy |
+| Malicious issuer | Issuer registration, API-key revocation, administrative suspension and evidence policy |
 | Disputed deal | Explicit dispute state; suspend positive reputation effects pending resolution |
 | Secret leakage | Environment variables or secret manager; no credentials in Git |
 | Contract exploit | Tests, static analysis, threat modeling and independent audit before mainnet |

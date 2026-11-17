@@ -10,9 +10,8 @@ export async function runIndexerOnce() {
     const store = new ChainEventStore(db);
     const adapter = new TonCenterIndexer();
     const maxBlocks = Number(process.env.INDEXER_MAX_BLOCKS ?? 1);
-    const startSeqno = process.env.INDEXER_START_SEQNO === undefined
-      ? undefined
-      : Number(process.env.INDEXER_START_SEQNO);
+    const configuredStart = process.env.INDEXER_START_SEQNO?.trim();
+    const startSeqno = configuredStart ? Number(configuredStart) : undefined;
     const result = await adapter.syncAvailable(store, startSeqno, maxBlocks);
     process.stdout.write(JSON.stringify({
       network: 'ton-testnet',

@@ -428,7 +428,7 @@ export function createApiServer(options: ApiOptions = {}) {
           WHERE network = ? AND wallet_address = ? AND issuer_id = ?
             AND schema_id = ? AND schema_version = ? AND revoked_at IS NULL
             AND (expires_at IS NULL OR expires_at > ?)
-        `).get('-3', subjectMatch[2], issuer.id, body.schemaId, body.schemaVersion, Math.floor(Date.now() / 1000));
+        `).get('-3', subjectMatch[2].toLowerCase(), issuer.id, body.schemaId, body.schemaVersion, Math.floor(Date.now() / 1000));
         if (!consent) {
           send(res, 403, { error: 'subject_consent_required', requestId });
           return;
@@ -437,7 +437,7 @@ export function createApiServer(options: ApiOptions = {}) {
         const issued = attestations.issue(issuer.id, {
           schemaId: body.schemaId as string,
           schemaVersion: body.schemaVersion as number,
-          subjectId: body.subjectId as string,
+          subjectId: `wallet:-3:${subjectMatch[2].toLowerCase()}`,
           claim: body.claim as { [key: string]: JsonValue },
           evidenceRefs: body.evidenceRefs as string[],
           ...(body.expiresAt !== undefined ? { expiresAt: body.expiresAt as number } : {}),
@@ -526,9 +526,10 @@ export function createApiServer(options: ApiOptions = {}) {
           send(res, 400, { error: 'invalid_request', requestId });
           return;
         }
+        const walletAddress = body.walletAddress.toLowerCase();
         const wallet = db.prepare(
           'SELECT 1 FROM wallet_links WHERE user_id = ? AND network = ? AND address = ?',
-        ).get(user.id, '-3', body.walletAddress);
+        ).get(user.id, '-3', walletAddress);
         if (!wallet) {
           send(res, 403, { error: 'wallet_not_linked_to_account', requestId });
           return;
@@ -557,12 +558,12 @@ export function createApiServer(options: ApiOptions = {}) {
             id, user_id, network, wallet_address, issuer_id, schema_id, schema_version,
             purpose, created_at, expires_at
           ) VALUES (?, ?, '-3', ?, ?, ?, ?, ?, ?, ?)
-        `).run(id, user.id, body.walletAddress, body.issuerId, body.schemaId,
+        `).run(id, user.id, walletAddress, body.issuerId, body.schemaId,
           body.schemaVersion, body.purpose.trim(), now, expiresAt);
         send(res, 201, {
           id,
           network: '-3',
-          walletAddress: body.walletAddress,
+          walletAddress,
           issuerId: body.issuerId,
           schemaId: body.schemaId,
           schemaVersion: body.schemaVersion,

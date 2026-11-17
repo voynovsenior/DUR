@@ -6,7 +6,7 @@ test('database applies the initial schema migration', () => {
   const db = openDatabase(':memory:');
   try {
     const migrations = db.prepare('SELECT version FROM schema_migrations ORDER BY version').all() as Array<{ version: number }>;
-    assert.deepEqual(migrations, [{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }, { version: 5 }]);
+    assert.deepEqual(migrations, [{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }, { version: 5 }, { version: 6 }]);
 
     const userColumns = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>;
     assert.ok(userColumns.some(column => column.name === 'telegram_id'));
@@ -31,6 +31,9 @@ test('database applies the initial schema migration', () => {
 
     const schemaColumns = db.prepare('PRAGMA table_info(attestation_schemas)').all() as Array<{ name: string }>;
     assert.ok(schemaColumns.some(column => column.name === 'schema_json'));
+
+    const consentColumns = db.prepare('PRAGMA table_info(subject_consents)').all() as Array<{ name: string }>;
+    assert.ok(consentColumns.some(column => column.name === 'revoked_at'));
   } finally {
     db.close();
   }

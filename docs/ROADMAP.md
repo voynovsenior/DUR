@@ -32,6 +32,7 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [x] Canonical claim validation and schema-version metadata helper
 - [x] Persistent issuer registry and hashed API-key authentication
 - [x] Attestation issuance, expiry, revocation and event history
+- [x] Issuer API key revocation
 - [ ] Registered JSON Schema validation and subject-consent workflow
 - [ ] Issuer trust-tier policy and administrative suspension workflow
 - [ ] Canonical TON event verification

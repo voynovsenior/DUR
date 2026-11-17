@@ -1,0 +1,39 @@
+# Deployment guide
+
+## Current status
+The repository is a prototype. Deployment makes the preview accessible; it does not activate reputation scoring, attestations, indexing or escrow contracts.
+
+## Frontend hosting
+1. Connect this repository to a static hosting provider that supports Vite.
+2. Set the build command to npm run build.
+3. Set the output directory to dist.
+4. Configure the public environment variable VITE_TONCONNECT_MANIFEST_URL with the full HTTPS URL of the manifest.
+5. Deploy and verify that the app and /tonconnect-manifest.json load publicly.
+
+## Telegram Mini App
+1. Configure the bot in BotFather.
+2. Set the Mini App URL to the deployed HTTPS origin.
+3. Test the Mini App inside Telegram on Android and iOS.
+4. Confirm safe-area layout, navigation, wallet connect and return-to-app behavior.
+
+## TON Connect
+Replace the placeholder values in public/tonconnect-manifest.json with the production HTTPS origin and a publicly accessible icon. The manifest must be served over HTTPS.
+
+## Bot hosting
+Run npm run bot on a Node.js host with private environment variables:
+- BOT_TOKEN
+- MINI_APP_URL
+
+Never place BOT_TOKEN in VITE_ variables: those are bundled into client-side assets. Do not commit secrets.
+
+## Telegram Serverless
+Telegram Serverless access is not assumed. If access becomes available, evaluate it as an optional bot runtime. Keep the bot logic portable and keep protocol backend responsibilities separate.
+
+## Pre-release checklist
+- [ ] HTTPS enabled
+- [ ] Manifest values replaced
+- [ ] Telegram bot token stored as a server secret
+- [ ] Telegram init data validated server-side before privileged operations
+- [ ] Wallet proof verified server-side before associating ownership
+- [ ] No real escrow or custody enabled
+- [ ] Build and mobile smoke tests pass

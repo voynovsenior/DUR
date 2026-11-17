@@ -229,7 +229,7 @@ export function createApiServer(options: ApiOptions = {}) {
             INSERT INTO wallet_links (id, user_id, network, address, public_key, linked_at)
             VALUES (?, ?, ?, ?, ?, ?)
           `).run(randomUUID(), user.id, verified.network, verified.address,
-            body.public_key?.toLowerCase() ?? 'resolved-from-wallet-state-init', Math.floor(Date.now() / 1000));
+            verified.publicKey, Math.floor(Date.now() / 1000));
         }
         send(res, 200, { verified: true, address: verified.address, network: verified.network }, {
           'set-cookie': cookie(TON_ATTEMPT_COOKIE, '', secureCookies, 0, '/v1/auth/ton'),

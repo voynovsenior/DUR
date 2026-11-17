@@ -418,6 +418,21 @@ export function createApiServer(options: ApiOptions = {}) {
           send(res, 400, { error: 'invalid_request', requestId });
           return;
         }
+        const subjectMatch = body.subjectId.match(/^wallet:(-3):((?:-1|0):[a-fA-F0-9]{64})$/);
+        if (!subjectMatch) {
+          send(res, 400, { error: 'invalid_subject_id', requestId });
+          return;
+        }
+        const consent = db.prepare(`
+          SELECT 1 FROM subject_consents
+          WHERE network = ? AND wallet_address = ? AND issuer_id = ?
+            AND schema_id = ? AND schema_version = ? AND revoked_at IS NULL
+            AND (expires_at IS NULL OR expires_at > ?)
+        `).get('-3', subjectMatch[2], issuer.id, body.schemaId, body.schemaVersion, Math.floor(Date.now() / 1000));
+        if (!consent) {
+          send(res, 403, { error: 'subject_consent_required', requestId });
+          return;
+        }
         schemas.validate(body.schemaId, body.schemaVersion as number, body.claim);
         const issued = attestations.issue(issuer.id, {
           schemaId: body.schemaId as string,
@@ -480,6 +495,122 @@ export function createApiServer(options: ApiOptions = {}) {
         const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 400;
         send(res, status, { error: code, requestId });
       }
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/v1/auth/consents') {
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as {
+          walletAddress?: unknown;
+          issuerId?: unknown;
+          schemaId?: unknown;
+          schemaVersion?: unknown;
+          purpose?: unknown;
+          expiresAt?: unknown;
+        };
+        if (!body || typeof body.walletAddress !== 'string' ||
+            !/^(?:-1|0):[a-fA-F0-9]{64}$/.test(body.walletAddress) ||
+            typeof body.issuerId !== 'string' || typeof body.schemaId !== 'string' ||
+            !Number.isSafeInteger(body.schemaVersion) || typeof body.purpose !== 'string' ||
+            body.purpose.trim().length < 5 || body.purpose.trim().length > 256) {
+          send(res, 400, { error: 'invalid_request', requestId });
+          return;
+        }
+        const wallet = db.prepare(
+          'SELECT 1 FROM wallet_links WHERE user_id = ? AND network = ? AND address = ?',
+        ).get(user.id, '-3', body.walletAddress);
+        if (!wallet) {
+          send(res, 403, { error: 'wallet_not_linked_to_account', requestId });
+          return;
+        }
+        const issuer = db.prepare("SELECT 1 FROM issuers WHERE id = ? AND status = 'active'")
+          .get(body.issuerId);
+        if (!issuer) {
+          send(res, 404, { error: 'issuer_not_found', requestId });
+          return;
+        }
+        if (!schemas.get(body.schemaId, body.schemaVersion as number)) {
+          send(res, 404, { error: 'schema_not_found', requestId });
+          return;
+        }
+        const now = Math.floor(Date.now() / 1000);
+        const expiresAt = body.expiresAt === undefined ? null : body.expiresAt;
+        if (expiresAt !== null &&
+            (!Number.isSafeInteger(expiresAt) || (expiresAt as number) <= now ||
+             (expiresAt as number) > now + 365 * 24 * 60 * 60)) {
+          send(res, 400, { error: 'invalid_consent_expiry', requestId });
+          return;
+        }
+        const id = randomUUID();
+        db.prepare(`
+          INSERT INTO subject_consents (
+            id, user_id, network, wallet_address, issuer_id, schema_id, schema_version,
+            purpose, created_at, expires_at
+          ) VALUES (?, ?, '-3', ?, ?, ?, ?, ?, ?, ?)
+        `).run(id, user.id, body.walletAddress, body.issuerId, body.schemaId,
+          body.schemaVersion, body.purpose.trim(), now, expiresAt);
+        send(res, 201, {
+          id,
+          network: '-3',
+          walletAddress: body.walletAddress,
+          issuerId: body.issuerId,
+          schemaId: body.schemaId,
+          schemaVersion: body.schemaVersion,
+          purpose: body.purpose.trim(),
+          createdAt: now,
+          expiresAt,
+          revokedAt: null,
+        });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'consent_creation_failed';
+        const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 400;
+        send(res, status, { error: code, requestId });
+      }
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/v1/auth/consents') {
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      const consents = db.prepare(`
+        SELECT id, network, wallet_address AS walletAddress, issuer_id AS issuerId,
+               schema_id AS schemaId, schema_version AS schemaVersion, purpose,
+               created_at AS createdAt, expires_at AS expiresAt, revoked_at AS revokedAt
+        FROM subject_consents WHERE user_id = ? ORDER BY created_at DESC
+      `).all(user.id);
+      send(res, 200, { consents });
+      return;
+    }
+
+    const consentRevokeRoute = url.pathname.match(/^\/v1\/auth\/consents\/([^/]+)\/revoke$/);
+    if (consentRevokeRoute && req.method === 'POST') {
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      const result = db.prepare(`
+        UPDATE subject_consents SET revoked_at = ?
+        WHERE id = ? AND user_id = ? AND revoked_at IS NULL
+      `).run(Math.floor(Date.now() / 1000), consentRevokeRoute[1], user.id);
+      if (result.changes === 0) {
+        send(res, 404, { error: 'consent_not_found_or_already_revoked', requestId });
+        return;
+      }
+      send(res, 200, { revoked: true });
       return;
     }
 

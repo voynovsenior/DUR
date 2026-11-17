@@ -58,13 +58,12 @@ export class DurIssuerClient {
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const headers = new Headers(init.headers);
+    headers.set('authorization', `Bearer ${this.apiKey}`);
+    if (init.body && !headers.has('content-type')) headers.set('content-type', 'application/json');
     const response = await this.fetchImpl(`${this.baseUrl}${path}`, {
       ...init,
-      headers: {
-        authorization: `Bearer ${this.apiKey}`,
-        ...(init.body ? { 'content-type': 'application/json' } : {}),
-        ...init.headers,
-      },
+      headers,
     });
     const body = await response.json().catch(() => ({})) as Record<string, unknown>;
     if (!response.ok) {

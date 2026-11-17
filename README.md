@@ -58,6 +58,10 @@ The first UI package includes:
 ```text
 .
 ├── bot/                    # Telegram bot (grammY)
+├── backend/
+│   ├── src/identity/       # Telegram verification, SQLite accounts and sessions
+│   ├── src/server.ts       # HTTP API
+│   └── test/               # API and identity tests
 ├── docs/
 │   ├── ARCHITECTURE.md     # System boundaries and components
 │   ├── SECURITY.md         # Security assumptions and threat model
@@ -106,6 +110,18 @@ Vite prints a local development URL. A Telegram Mini App must be served over HTT
 
 The committed manifest contains placeholders. Wallet connection is not fully configured until those values are replaced.
 
+### Run the API
+
+Set `TELEGRAM_BOT_TOKEN` in the server environment (the backend loads local `.env` files through dotenv), then run:
+
+```bash
+npm run api
+```
+
+The API creates its SQLite database at `./data/dur.sqlite` by default. Set `DUR_DATABASE_PATH` to change the location. For local HTTP testing only, set `COOKIE_SECURE=false`; deployed environments must keep Secure cookies enabled and configure `CORS_ORIGIN` to the exact HTTPS frontend origin.
+
+Telegram login is available at `POST /v1/auth/telegram` and uses raw `Telegram.WebApp.initData`. Wallet ownership verification with TON Connect `ton_proof` is not implemented yet.
+
 ### Run the Telegram bot
 
 Set `BOT_TOKEN` and `MINI_APP_URL` in the host's private environment variables, then run:
@@ -128,6 +144,7 @@ Never commit a real bot token. Do not send bot tokens, seed phrases, or private 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [Identity Layer](docs/IDENTITY.md)
 - [API preview](docs/API.md)
 - [Protocol concepts](docs/PROTOCOL.md)
 - [Security model](docs/SECURITY.md)

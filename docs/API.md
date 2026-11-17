@@ -71,6 +71,8 @@ Optional environment variables:
 - `DUR_DATABASE_PATH` — defaults to `./data/dur.sqlite`.
 - `COOKIE_SECURE` — defaults to secure cookies; set false only for local HTTP development.
 - `CORS_ORIGIN` — exact allowed frontend origin.
+- `TON_APP_DOMAIN` — exact public dApp hostname (required for wallet linking).
+- `TON_NETWORK_ID` — defaults to `-3` (TON Testnet).
 
 ## Error model
 

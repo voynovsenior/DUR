@@ -375,6 +375,41 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    const issuerStatusRoute = url.pathname.match(/^\/v1\/admin\/issuers\/([^/]+)\/status$/);
+    if (issuerStatusRoute && req.method === 'POST') {
+      if (!adminToken) {
+        send(res, 503, { error: 'issuer_admin_not_configured', requestId });
+        return;
+      }
+      if (!secureTokenEquals(bearerToken(req), adminToken)) {
+        send(res, 401, { error: 'admin_unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as { status?: unknown };
+        if (!body || (body.status !== 'active' && body.status !== 'suspended' && body.status !== 'revoked')) {
+          send(res, 400, { error: 'invalid_issuer_status', requestId });
+          return;
+        }
+        const updated = attestations.setIssuerStatus(issuerStatusRoute[1], body.status);
+        if (!updated) {
+          send(res, 404, { error: 'issuer_not_found_or_terminal', requestId });
+          return;
+        }
+        send(res, 200, { issuerId: issuerStatusRoute[1], status: body.status });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'issuer_status_update_failed';
+        const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 400;
+        send(res, status, { error: code, requestId });
+      }
+      return;
+    }
+
     if (req.method === 'POST' && url.pathname === '/v1/issuers/me/revoke-key') {
       const key = bearerToken(req);
       const issuer = attestations.authenticateIssuer(key);

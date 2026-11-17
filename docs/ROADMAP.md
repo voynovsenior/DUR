@@ -20,7 +20,8 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [x] Session expiry, revocation, and logout
 - [ ] TON Connect proof verification
 - [ ] Persistent single-use wallet challenge store
-- [ ] Database migrations and backup strategy
+- [x] Initial versioned SQLite schema migration tracking
+- [ ] Backup and restore strategy
 - [ ] Distributed rate limiting and operational logging
 - [ ] Mobile end-to-end authentication QA
 

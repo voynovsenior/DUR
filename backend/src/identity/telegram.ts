@@ -99,7 +99,7 @@ export function verifyTelegramInitData(
     throw new Error('invalid_user');
   }
 
-  if (!Number.isSafeInteger(user.id) || user.id <= 0 || typeof user.first_name !== 'string') {
+  if (!user || typeof user !== 'object' || !Number.isSafeInteger(user.id) || user.id <= 0 || typeof user.first_name !== 'string') {
     throw new Error('invalid_user');
   }
 

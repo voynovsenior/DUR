@@ -365,7 +365,7 @@ export function createApiServer(options: ApiOptions = {}) {
           send(res, 400, { error: 'invalid_request', requestId });
           return;
         }
-        const revoked = attestations.revoke(issuer.id, decodeURIComponent(attestationRoute[1]), body.reason);
+        const revoked = attestations.revoke(issuer.id, attestationRoute[1], body.reason);
         if (!revoked) {
           send(res, 404, { error: 'attestation_not_found_or_not_active', requestId });
           return;

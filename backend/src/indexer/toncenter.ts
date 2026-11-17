@@ -196,7 +196,8 @@ export class TonCenterIndexer {
     }
     const latest = await this.getLatestCheckpoint();
     const current = store.getCheckpoint(this.network);
-    const configuredStart = startSeqno ?? Number(process.env.INDEXER_START_SEQNO);
+    const envStart = process.env.INDEXER_START_SEQNO?.trim();
+    const configuredStart = startSeqno ?? (envStart ? Number(envStart) : undefined);
     const next = current ? current.seqno + 1 : configuredStart;
     if (!Number.isSafeInteger(next) || next < 0) throw new Error('indexer_start_seqno_required');
     const results = [];

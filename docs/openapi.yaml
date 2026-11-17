@@ -113,6 +113,30 @@ paths:
           description: Schema version registered
         '400':
           description: Invalid or duplicate schema version
+  /v1/admin/issuers/{id}/status:
+    post:
+      summary: Suspend, reactivate or revoke an issuer
+      security:
+        - AdminBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [active, suspended, revoked] }
+      responses:
+        '200':
+          description: Issuer status updated
+        '404':
+          description: Issuer not found or already terminally revoked
   /v1/schemas/{schemaId}/{version}:
     get:
       summary: Retrieve a registered attestation schema

@@ -82,6 +82,33 @@ function secureTokenEquals(candidate: string | undefined, expected: string): boo
   return timingSafeEqual(candidateHash, expectedHash);
 }
 
+type RateBucket = { count: number; resetAt: number };
+
+function consumeRateLimit(
+  buckets: Map<string, RateBucket>,
+  key: string,
+  limit: number,
+  windowMs: number,
+): { allowed: boolean; retryAfter: number } {
+  const now = Date.now();
+  for (const [bucketKey, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(bucketKey);
+  }
+  if (!buckets.has(key) && buckets.size >= 10_000) {
+    return { allowed: false, retryAfter: Math.ceil(windowMs / 1000) };
+  }
+  let bucket = buckets.get(key);
+  if (!bucket || bucket.resetAt <= now) {
+    bucket = { count: 0, resetAt: now + windowMs };
+    buckets.set(key, bucket);
+  }
+  if (bucket.count >= limit) {
+    return { allowed: false, retryAfter: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)) };
+  }
+  bucket.count += 1;
+  return { allowed: true, retryAfter: 0 };
+}
+
 function cookie(name: string, token: string, secure: boolean, maxAge: number, path = '/') {
   return `${name}=${encodeURIComponent(token)}; Path=${path}; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
 }
@@ -94,6 +121,14 @@ export function createApiServer(options: ApiOptions = {}) {
   const attestations = new AttestationRegistry(db);
   const chainEvents = new ChainEventStore(db);
   const schemas = new AttestationSchemaRegistry(db);
+  const rateBuckets = new Map<string, RateBucket>();
+  const clientKey = (req: IncomingMessage, scope: string) => `${scope}:${req.socket.remoteAddress ?? 'unknown'}`;
+  const enforceLimit = (res: ServerResponse, requestId: string, key: string, limit: number) => {
+    const result = consumeRateLimit(rateBuckets, key, limit, 60_000);
+    if (result.allowed) return false;
+    send(res, 429, { error: 'rate_limited', requestId }, { 'retry-after': String(result.retryAfter) });
+    return true;
+  };
   const botToken = options.botToken ?? process.env.TELEGRAM_BOT_TOKEN ?? '';
   const allowedOrigin = options.allowedOrigin ?? process.env.CORS_ORIGIN ?? '';
   const secureCookies = options.secureCookies ?? process.env.COOKIE_SECURE !== 'false';
@@ -201,6 +236,7 @@ export function createApiServer(options: ApiOptions = {}) {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/auth/telegram') {
+      if (enforceLimit(res, requestId, clientKey(req, 'telegram-login'), 10)) return;
       const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
       if (contentType !== 'application/json') {
         send(res, 415, { error: 'unsupported_media_type', requestId });
@@ -256,6 +292,7 @@ export function createApiServer(options: ApiOptions = {}) {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/auth/ton/verify') {
+      if (enforceLimit(res, requestId, clientKey(req, 'ton-proof-verify'), 10)) return;
       const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
       if (contentType !== 'application/json') {
         send(res, 415, { error: 'unsupported_media_type', requestId });
@@ -315,6 +352,7 @@ export function createApiServer(options: ApiOptions = {}) {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/admin/schemas') {
+      if (enforceLimit(res, requestId, clientKey(req, 'schema-admin'), 20)) return;
       if (!adminToken) {
         send(res, 503, { error: 'schema_admin_not_configured', requestId });
         return;
@@ -356,6 +394,7 @@ export function createApiServer(options: ApiOptions = {}) {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/admin/issuers') {
+      if (enforceLimit(res, requestId, clientKey(req, 'issuer-admin'), 20)) return;
       if (!adminToken) {
         send(res, 503, { error: 'issuer_admin_not_configured', requestId });
         return;
@@ -433,6 +472,7 @@ export function createApiServer(options: ApiOptions = {}) {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/attestations') {
+      if (enforceLimit(res, requestId, clientKey(req, 'attestation-issue'), 60)) return;
       const issuer = attestations.authenticateIssuer(bearerToken(req));
       if (!issuer) {
         send(res, 401, { error: 'issuer_unauthorized', requestId });
@@ -544,6 +584,7 @@ export function createApiServer(options: ApiOptions = {}) {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/auth/consents') {
+      if (enforceLimit(res, requestId, clientKey(req, 'subject-consent'), 20)) return;
       const user = sessions.getUser(readCookie(req, COOKIE_NAME));
       if (!user) {
         send(res, 401, { error: 'unauthorized', requestId });

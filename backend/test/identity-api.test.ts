@@ -23,7 +23,7 @@ function initData(authDate = now) {
 
 async function withServer(run: (base: string) => Promise<void>) {
   const db = openDatabase(':memory:');
-  const server = createApiServer({ db, botToken: token, secureCookies: false, tonProofDomain: 'dur.example', tonNetworkId: '-3' });
+  const server = createApiServer({ db, botToken: token, secureCookies: false, tonProofDomain: 'dur.example', tonNetworkId: '-3', adminToken: 'unit-test-admin-value' });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   assert.ok(address && typeof address !== 'string');
@@ -158,5 +158,40 @@ test('TON proof challenge requires a verified Telegram session and is bound to t
       body: JSON.stringify({ address: '0:invalid', network: '-3', proof: { payload: body.payload } }),
     });
     assert.equal(invalidProof.status, 401);
+  });
+});
+
+test('issuer admin creates an issuer and its key can issue and revoke attestations', async () => {
+  await withServer(async base => {
+    const created = await fetch(`${base}/v1/admin/issuers`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer unit-test-admin-value' },
+      body: JSON.stringify({ displayName: 'Test Marketplace', issuerType: 'marketplace' }),
+    });
+    assert.equal(created.status, 201);
+    const issuer = await created.json() as { issuer: { id: string }; apiKey: string };
+    assert.ok(issuer.apiKey.startsWith('dur_issuer_'));
+
+    const issued = await fetch(`${base}/v1/attestations`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
+      body: JSON.stringify({
+        schemaId: 'dur.delivery.completed',
+        schemaVersion: 1,
+        subjectId: 'wallet:-3:0:abc123',
+        claim: { completed: true },
+        evidenceRefs: ['ton:transaction:abc123'],
+      }),
+    });
+    assert.equal(issued.status, 201);
+    const attestation = await issued.json() as { id: string; claimDigest: string };
+    assert.match(attestation.claimDigest, /^[a-f0-9]{64}$/);
+
+    const revoke = await fetch(`${base}/v1/attestations/${attestation.id}/revoke`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
+      body: JSON.stringify({ reason: 'Order disputed' }),
+    });
+    assert.equal(revoke.status, 200);
   });
 });

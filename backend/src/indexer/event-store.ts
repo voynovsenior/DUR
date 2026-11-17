@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { DurDatabase } from '../identity/database';
 
 export type TonBlockCheckpoint = {
@@ -151,7 +151,7 @@ export class ChainEventStore {
       this.db.prepare(`
         INSERT INTO chain_event_reviews (id, chain_event_id, status, reason, created_at)
         VALUES (?, ?, 'quarantined', ?, ?)
-      `).run(cryptoRandomId(), id, normalizedReason, nowSeconds);
+      `).run(randomUUID(), id, normalizedReason, nowSeconds);
       return true;
     });
     return transaction();

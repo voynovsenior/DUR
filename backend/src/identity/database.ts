@@ -1,11 +1,11 @@
 import Database from 'better-sqlite3';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 export type DurDatabase = InstanceType<typeof Database>;
 
 export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data/dur.sqlite'): DurDatabase {
   if (filename !== ':memory:' && !filename.startsWith('file:')) {
-    const { mkdirSync } = require('node:fs') as typeof import('node:fs');
-    const { dirname } = require('node:path') as typeof import('node:path');
     mkdirSync(dirname(filename), { recursive: true });
   }
   const db = new Database(filename);

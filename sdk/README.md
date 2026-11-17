@@ -37,4 +37,4 @@ The SDK supports issue, read-own-attestation, revoke-own-attestation and revoke-
 
 ## Limitations
 
-The server validates issuer claims against registered JSON Schema versions. The SDK does not establish subject consent or verify evidence references. An attestation proves that an authenticated issuer made a claim; it does not prove that claim true.
+The server validates claims against registered JSON Schema versions and requires wallet-owner consent before issuance. Issuer applications must obtain consent through the DUR user-facing flow; the SDK does not create consent grants or verify evidence references. An attestation proves that an authenticated issuer made a claim; it does not prove that claim true.

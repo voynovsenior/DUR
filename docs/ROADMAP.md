@@ -11,7 +11,10 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [ ] Mobile QA inside Telegram
 
 ## 0.2 — Application foundation
-- [ ] Backend API skeleton
+- [x] Read-only backend API skeleton (health, status, explicit not-implemented profile route)
+- [x] Initial API tests and OpenAPI contract
+- [x] Initial conceptual data model
+- [ ] Backend API authentication and persistence
 - [ ] Server-side Telegram init data validation
 - [ ] Wallet proof verification
 - [ ] Database schema and migrations

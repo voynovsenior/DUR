@@ -18,9 +18,12 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [x] Telegram login HTTP route
 - [x] Persistent SQLite account and session store
 - [x] Session expiry, revocation, and logout
-- [ ] TON Connect proof verification
-- [ ] Persistent single-use wallet challenge store
-- [x] Initial versioned SQLite schema migration tracking
+- [x] TON Connect proof verification for explicitly supported fixed-key wallet versions (V1R1–V3R2, V4R2)
+- [x] Persistent single-use wallet challenges bound to Telegram account and browser attempt
+- [x] Atomic challenge consumption and network-qualified wallet linking
+- [ ] Additional wallet versions (V4R1, V5, WalletTg) and independent verifier review
+- [ ] End-to-end testing with real TON Connect wallets on Testnet
+- [x] Versioned SQLite schema migrations (identity, wallet links and proof challenges)
 - [ ] Backup and restore strategy
 - [ ] Distributed rate limiting and operational logging
 - [ ] Mobile end-to-end authentication QA

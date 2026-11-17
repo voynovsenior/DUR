@@ -178,6 +178,8 @@ test('issuer admin creates an issuer and its key can issue and revoke attestatio
       }),
     });
     assert.equal(schema.status, 201);
+    const schemaRead = await fetch(`${base}/v1/schemas/dur.delivery.completed/1`);
+    assert.equal(schemaRead.status, 200);
 
     const created = await fetch(`${base}/v1/admin/issuers`, {
       method: 'POST',
@@ -187,6 +189,19 @@ test('issuer admin creates an issuer and its key can issue and revoke attestatio
     assert.equal(created.status, 201);
     const issuer = await created.json() as { issuer: { id: string }; apiKey: string };
     assert.ok(issuer.apiKey.startsWith('dur_issuer_'));
+
+    const invalidClaim = await fetch(`${base}/v1/attestations`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${issuer.apiKey}` },
+      body: JSON.stringify({
+        schemaId: 'dur.delivery.completed',
+        schemaVersion: 1,
+        subjectId: 'wallet:-3:0:abc123',
+        claim: { completed: 'yes' },
+        evidenceRefs: ['ton:transaction:abc123'],
+      }),
+    });
+    assert.equal(invalidClaim.status, 400);
 
     const issued = await fetch(`${base}/v1/attestations`, {
       method: 'POST',

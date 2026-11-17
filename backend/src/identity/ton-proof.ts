@@ -119,7 +119,11 @@ export function verifyTonProof(
 ): { address: string; network: string; publicKey: string } {
   if (!request || typeof request !== 'object' || !request.proof) throw new Error('invalid_proof_request');
   if (request.network !== options.expectedNetwork) throw new Error('wrong_network');
-  if (!options.expectedDomain || request.proof.domain?.value !== options.expectedDomain) {
+  const expectedLabels = options.expectedDomain.split('.');
+  const validExpectedDomain = options.expectedDomain.length <= 128 && expectedLabels.length >= 2 &&
+    expectedLabels.every(label => label.length >= 1 && label.length <= 63 &&
+      /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(label));
+  if (!validExpectedDomain || request.proof.domain?.value !== options.expectedDomain) {
     throw new Error('wrong_domain');
   }
 

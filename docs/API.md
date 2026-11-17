@@ -82,7 +82,7 @@ Requires the issuing issuer API key. Returns that issuer's attestation and event
 
 Requires the issuing issuer API key and JSON `{ "reason": "..." }`. Revocation is recorded as a status transition and event. Expired attestations cannot be revoked.
 
-Issuer trust tier defaults to `unverified`. The registry validates claims against a registered JSON Schema before issuance. Subject consent and issuer trust-tier policy remain pending. Issuer claims are not independently verified facts.
+Issuer trust tier defaults to `unverified`. The registry validates claims against a registered JSON Schema Draft-07 before issuance. Subject consent and issuer trust-tier policy remain pending. Issuer claims are not independently verified facts.
 
 ## TON Testnet indexer
 

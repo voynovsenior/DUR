@@ -14,8 +14,8 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [x] Read-only backend API skeleton (health, status, explicit not-implemented profile route)
 - [x] Initial API tests and OpenAPI contract
 - [x] Initial conceptual data model
-- [ ] Backend API authentication and persistence
-- [ ] Server-side Telegram init data validation
+- [x] Telegram init data HMAC verification helper and unit tests
+- [ ] Telegram login route and persistent sessions
 - [ ] Wallet proof verification
 - [ ] Database schema and migrations
 - [ ] API error model and request logging

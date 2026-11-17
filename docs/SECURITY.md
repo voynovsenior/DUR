@@ -25,8 +25,8 @@ This document describes design requirements; it is not an audit report. The curr
 
 ## Identity implementation status
 - Telegram init-data HMAC verification is connected to a login route; accounts and sessions are stored in SQLite. This is not an audited production authentication service.
-- TON Connect proof verification is not implemented.
-- Only Telegram identity/session routes are authenticated; reputation, attestation, escrow and other privileged write endpoints remain unavailable.
+- TON Connect proof verification and wallet linking are implemented for a limited set of standard fixed-key wallet versions; CI and real-wallet Testnet QA remain pending.
+- Telegram identity/session and TON wallet-link routes are authenticated; reputation, attestation, escrow and other privileged protocol write endpoints remain unavailable.
 - Never trust `initDataUnsafe`, a client-supplied wallet address, or a client-supplied public key as proof of identity.
 
 ## Safe development rules

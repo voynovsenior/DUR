@@ -1,8 +1,8 @@
-# DUR Identity Layer — Design and Status
+# DUR Identity Layer
 
-Status: **partial implementation / development preview**.
+Status: **Telegram authentication implemented; TON wallet authentication not yet implemented.**
 
-The Identity Layer links external identifiers to a DUR account only after the relevant proof has been verified. A Telegram account and a TON wallet are separate identity methods; neither proves that one person controls every linked account.
+The Identity Layer links external identifiers to an internal DUR account only after the relevant proof has been verified. A Telegram account and a TON wallet are separate identity methods; neither proves that one person controls every linked account.
 
 ## Identity model
 
@@ -13,62 +13,93 @@ The Identity Layer links external identifiers to a DUR account only after the re
 
 Do not use a Telegram username as a stable identifier. Usernames can change. Do not treat one wallet as one human or claim Sybil resistance from wallet linkage alone.
 
-## Telegram Mini App verification
+## Telegram authentication — implemented
 
-Implemented helper: `backend/src/identity/telegram.ts`.
+Files:
+- `backend/src/identity/telegram.ts`
+- `backend/src/identity/database.ts`
+- `backend/src/identity/sessions.ts`
+- `backend/src/server.ts`
 
-The helper accepts the raw `Telegram.WebApp.initData` string and validates it using Telegram's documented HMAC-SHA-256 procedure:
-1. Parse the query string and reject duplicate keys.
-2. Exclude `hash`, sort the remaining key/value pairs, and join them with line feeds.
-3. Derive the secret with HMAC-SHA-256 using `WebAppData` as the key and the bot token as the message.
-4. Compare the expected digest with the supplied hash using a constant-time comparison.
-5. Validate `auth_date` freshness and parse the signed user object.
+The API accepts raw `Telegram.WebApp.initData` and verifies its HMAC-SHA-256 signature using the bot token held only on the server. It rejects duplicate parameters, invalid signatures, malformed user data, stale timestamps, and timestamps too far in the future.
 
-The bot token must be supplied from server-side environment configuration. Never commit it or send it to the frontend. Never authenticate from `initDataUnsafe`; it is client-side convenience data, not a server-verifiable proof.
+### Routes
 
-This helper is not yet wired to an HTTP login route or persistent session store. Successful validation alone does not create an authenticated DUR session.
+#### POST /v1/auth/telegram
+
+Request:
+
+~~~json
+{ "initData": "<raw Telegram.WebApp.initData>" }
+~~~
+
+On successful verification, DUR creates or updates the account and issues a random opaque session token in an HttpOnly cookie. The database stores only the SHA-256 digest of the session token.
+
+#### GET /v1/auth/me
+
+Returns the current verified Telegram account when a valid session cookie is present. Otherwise returns HTTP 401.
+
+#### POST /v1/auth/logout
+
+Revokes the server-side session and expires the cookie.
+
+### Session controls
+
+- SQLite persistence for accounts and sessions;
+- 256-bit random opaque session tokens;
+- only token digests are stored;
+- HttpOnly and SameSite=Strict cookies;
+- Secure cookies by default (only disable for local HTTP development);
+- seven-day session expiry and server-side revocation;
+- exact configured Origin allowlist when `CORS_ORIGIN` is set;
+- no-store responses.
+
+Environment:
+- `TELEGRAM_BOT_TOKEN` — required for Telegram login; server-side only.
+- `DUR_DATABASE_PATH` — optional SQLite path; defaults to `./data/dur.sqlite`.
+- `COOKIE_SECURE` — defaults to Secure; set to `false` only for local HTTP development.
+- `CORS_ORIGIN` — optional exact frontend origin.
+
+The API does not authenticate from `initDataUnsafe`. The frontend must send the raw `Telegram.WebApp.initData` string.
 
 ## TON wallet verification — not implemented
 
-Wallet connection UI is not wallet authentication. The backend must implement the TON Connect `ton_proof` verification flow before it accepts a wallet link.
+Wallet connection UI is not wallet authentication. The backend must implement TON Connect `ton_proof` before accepting a wallet link.
 
 Required sequence:
 1. Create an unpredictable, single-use challenge on the backend and bind it to a server-side login attempt.
 2. Request `ton_proof` from the wallet with that challenge.
 3. Receive the wallet address, network, wallet state init, and proof.
-4. Validate the expected dApp domain, UTF-8 domain byte length, timestamp freshness, and challenge ownership/expiry.
+4. Validate the expected dApp domain, UTF-8 domain byte length, timestamp freshness, challenge ownership/expiry.
 5. Derive the wallet address from the supplied state init and require an exact match.
-6. Resolve the public key from trusted wallet state / a reviewed wallet implementation or an appropriate on-chain getter. Do not trust a client-supplied public key by itself.
+6. Resolve the public key from trusted wallet state or an approved on-chain getter. Never trust the client-supplied public key by itself.
 7. Reconstruct the TON proof message exactly and verify the Ed25519 signature.
-8. Atomically consume the challenge and issue a fresh server-side session.
+8. Atomically consume the challenge and issue a fresh authenticated session.
 
-A wallet proof must be bound to the expected dApp domain and the requested TON network. Testnet and mainnet identities must remain network-qualified.
+A wallet proof must be bound to the expected dApp domain and requested TON network. Testnet and mainnet identities must remain network-qualified.
 
-Official implementation reference: [TON Docs — Authenticate users with ton_proof](https://docs.ton.org/applications/ton-connect/how-to/ton-proof).
+The official TON guide specifies the proof byte layout, signature digest, address derivation, public-key resolution, timestamp checks, and atomic challenge consumption: [TON Docs — Authenticate users with ton_proof](https://docs.ton.org/applications/ton-connect/how-to/ton-proof).
 
-## Sessions — not implemented
+## Production hardening still required
 
-Before protected write routes are added, implement:
-- Secure, HttpOnly, SameSite cookies over HTTPS;
-- server-side session storage with expiration and revocation;
-- session ID rotation after authentication;
-- CSRF protection for cookie-authenticated state changes;
-- rate limits on challenge creation and proof verification;
-- atomic, single-use challenge consumption;
-- logout and wallet unlink flows.
-
-Do not put bot tokens, private keys, or seed phrases in the client, repository, or logs.
+- persistent challenge store with atomic single-use consumption;
+- TON proof verifier covering explicitly supported wallet implementations;
+- database migrations and backup/restore procedure;
+- distributed rate limiting at the edge or in shared storage;
+- monitoring, structured redacted logs, and operational alerts;
+- CSRF and deployment-origin review before enabling additional cookie-authenticated state-changing routes;
+- security review before production use.
 
 ## Current implementation boundary
 
 | Capability | Status |
 |---|---|
-| Telegram init data HMAC verifier | Implemented as a tested helper |
-| Telegram login HTTP route | Not implemented |
-| Persistent DUR account store | Not implemented |
-| Session creation / cookies | Not implemented |
+| Telegram init data HMAC verifier | Implemented and tested |
+| Telegram login HTTP route | Implemented |
+| Persistent account and session store | Implemented with SQLite |
+| Session creation / expiry / logout | Implemented |
 | TON Connect proof verifier | Not implemented |
 | Wallet-to-account linking | Not implemented |
-| Authenticated write endpoints | Not implemented |
+| Reputation / attestation / escrow writes | Not implemented |
 
-Until the missing components are implemented and tested, the API must not claim that a user is authenticated or that a wallet is verified.
+This is a development foundation, not an audited production authentication service. Do not use it for custody or real-value transactions.

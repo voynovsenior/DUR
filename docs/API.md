@@ -2,50 +2,62 @@
 
 Base URL: `http://localhost:8787`
 
-This is an initial service shell, not a production API. It intentionally exposes only health and capability metadata. Identity, reputation, attestations and escrow HTTP endpoints are not implemented.
+The API is an early development service. Telegram authentication and session endpoints are implemented. TON wallet verification, reputation, attestations, indexing, and escrow are not implemented.
 
 ## GET /healthz
 
 Returns service liveness.
 
-~~~json
-{
-  "ok": true,
-  "service": "dur-api",
-  "version": "0.1.0"
-}
-~~~
-
 ## GET /v1/status
 
-Returns the protocol preview status and explicit capability flags. A capability marked `not_implemented` must not be represented by clients as available.
+Returns protocol version and explicit capability flags. A capability marked `not_implemented` must not be represented by clients as available.
+
+## Telegram authentication
+
+### POST /v1/auth/telegram
+
+Accepts raw Telegram Mini App init data:
+
+~~~json
+{ "initData": "<raw Telegram.WebApp.initData>" }
+~~~
+
+The server validates the Telegram HMAC signature and freshness, then creates or updates the DUR account and sets an HttpOnly session cookie.
+
+Do not send `initDataUnsafe`. Do not send the bot token to the frontend.
+
+### GET /v1/auth/me
+
+Returns the current authenticated Telegram account. Returns HTTP 401 when the session is absent, invalid, or expired.
+
+### POST /v1/auth/logout
+
+Revokes the current server-side session and expires its cookie.
 
 ## GET /v1/profiles/{identifier}
 
 Returns HTTP 501 with `not_implemented`. No reputation profile is fabricated.
 
-## Identity verification helper
-
-A server-side Telegram Mini App init-data verifier is available at `backend/src/identity/telegram.ts`. It is a library helper only: no login route, account persistence, or session is created yet. Pass raw `Telegram.WebApp.initData`, not `initDataUnsafe`. Supply the bot token only through server-side environment configuration.
-
-TON Connect `ton_proof` verification and wallet-link endpoints are not implemented. A connected wallet must not be treated as authenticated.
-
-## Error envelope
-
-Errors include a stable machine-readable `error` field and a request identifier where applicable. Responses are JSON and use `Cache-Control: no-store`.
-
 ## Local development
 
 ~~~bash
 npm install
-npm run api
-npm test
+TELEGRAM_BOT_TOKEN="your-bot-token" COOKIE_SECURE=false npm run api
 ~~~
+
+Use a private local environment. Never commit a real bot token. In deployed environments, keep Secure cookies enabled and set `CORS_ORIGIN` to the exact HTTPS frontend origin.
 
 Optional environment variables:
 - `API_PORT` — defaults to 8787.
-- `CORS_ORIGIN` — one exact allowed browser origin. Do not use a wildcard for credentialed flows.
+- `TELEGRAM_BOT_TOKEN` — required for Telegram login.
+- `DUR_DATABASE_PATH` — defaults to `./data/dur.sqlite`.
+- `COOKIE_SECURE` — defaults to secure cookies; set false only for local HTTP development.
+- `CORS_ORIGIN` — exact allowed frontend origin.
+
+## Error model
+
+Responses are JSON and use `Cache-Control: no-store`. Errors include a machine-readable `error` field and request identifier where applicable.
 
 ## Security boundary
 
-No authenticated write endpoints exist. Do not add privileged writes until Telegram init-data validation is connected to server-side sessions and TON wallet proof verification is implemented and tested.
+TON Connect `ton_proof` verification and wallet-link endpoints are not implemented. A connected wallet must not be treated as authenticated. Reputation, attestations, and escrow remain unavailable.

@@ -66,7 +66,7 @@ Lists active immutable schema IDs and versions available for consent grants.
 
 ### POST /v1/auth/consents
 
-Requires a Telegram-authenticated session and a TON Testnet wallet already linked to that account. Creates a consent grant scoped to one issuer, one schema version, one wallet and a stated purpose. Optional expiry is limited to one year.
+Requires a Telegram-authenticated session and a TON Testnet wallet already linked to that account. Creates a consent grant scoped to one issuer, one schema version, one wallet and a stated purpose. Expiry defaults to 90 days and can be customized up to one year.
 
 ### GET /v1/auth/consents
 

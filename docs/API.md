@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8787`
 
-The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation and escrow are not implemented. A manual TON Testnet ingestion adapter is available, but its indexed provider data remains explicitly unverified. The attestation registry has issuer-authenticated create/read/revoke endpoints but no public subject-consent workflow yet; versioned JSON Schema validation is implemented.
+The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation and escrow are not implemented. A manual TON Testnet ingestion adapter is available, but its indexed provider data remains explicitly unverified. The attestation registry has issuer-authenticated create/read/revoke endpoints but wallet-owner consent is required for issuance; owners can inspect and revoke their grants.
 
 ## GET /healthz
 
@@ -52,6 +52,20 @@ Required server environment:
 
 Supported fixed-key wallet versions currently include V1R1–V3R2 and V4R2. V4R1, V5, WalletTg and other unrecognized code hashes are rejected until separately implemented and reviewed.
 
+## Subject consent
+
+### POST /v1/auth/consents
+
+Requires a Telegram-authenticated session and a TON Testnet wallet already linked to that account. Creates a consent grant scoped to one issuer, one schema version, one wallet and a stated purpose. Optional expiry is limited to one year.
+
+### GET /v1/auth/consents
+
+Lists consent grants belonging to the authenticated account.
+
+### POST /v1/auth/consents/{id}/revoke
+
+Revokes the selected grant. Subsequent attestation issuance for that wallet/issuer/schema combination is rejected.
+
 ## Attestation registry
 
 ### POST /v1/admin/schemas
@@ -82,7 +96,7 @@ Requires the issuing issuer API key. Returns that issuer's attestation and event
 
 Requires the issuing issuer API key and JSON `{ "reason": "..." }`. Revocation is recorded as a status transition and event. Expired attestations cannot be revoked.
 
-Issuer trust tier defaults to `unverified`. The registry validates claims against a registered JSON Schema Draft-07 before issuance. Subject consent and issuer trust-tier policy remain pending. Issuer claims are not independently verified facts.
+Issuer trust tier defaults to `unverified`. The registry validates claims against a registered JSON Schema Draft-07 before issuance. Issuer trust-tier policy and a dispute workflow remain pending. Issuer claims are not independently verified facts.
 
 ## TON Testnet indexer
 

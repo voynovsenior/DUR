@@ -37,4 +37,4 @@ The SDK supports issue, read-own-attestation, revoke-own-attestation and revoke-
 
 ## Limitations
 
-The SDK does not validate issuer claims against a registered JSON Schema, establish subject consent, or verify evidence references. An attestation proves that an authenticated issuer made a claim; it does not prove that claim true.
+The server validates issuer claims against registered JSON Schema versions. The SDK does not establish subject consent or verify evidence references. An attestation proves that an authenticated issuer made a claim; it does not prove that claim true.

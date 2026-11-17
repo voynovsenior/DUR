@@ -1,7 +1,7 @@
 # Deployment guide
 
 ## Current status
-The repository is a prototype. Deployment makes the preview accessible; it does not activate reputation scoring, attestations, indexing or escrow contracts.
+The repository is a prototype. Deployment makes the preview accessible; it does not activate reputation scoring, public subject-consented attestations, indexing or escrow contracts. Issuer endpoints require deliberate admin credential configuration.
 
 ## Frontend hosting
 1. Connect this repository to a static hosting provider that supports Vite.
@@ -45,7 +45,7 @@ Telegram Serverless access is not assumed. If access becomes available, evaluate
 ## Pre-release checklist
 - [ ] HTTPS enabled
 - [ ] Manifest values replaced
-- [ ] Telegram bot token stored as a server secret
+- [ ] Telegram bot token and `DUR_ADMIN_TOKEN` stored as server-only credentials
 - [ ] Telegram init data validated server-side before privileged operations
 - [ ] Wallet proof verified server-side before associating ownership
 - [ ] No real escrow or custody enabled

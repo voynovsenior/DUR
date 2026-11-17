@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8787`
 
-This is an initial service shell, not a production API. It intentionally exposes only health and capability metadata. Identity, reputation, attestations and escrow endpoints are not implemented.
+This is an initial service shell, not a production API. It intentionally exposes only health and capability metadata. Identity, reputation, attestations and escrow HTTP endpoints are not implemented.
 
 ## GET /healthz
 
@@ -24,6 +24,12 @@ Returns the protocol preview status and explicit capability flags. A capability 
 
 Returns HTTP 501 with `not_implemented`. No reputation profile is fabricated.
 
+## Identity verification helper
+
+A server-side Telegram Mini App init-data verifier is available at `backend/src/identity/telegram.ts`. It is a library helper only: no login route, account persistence, or session is created yet. Pass raw `Telegram.WebApp.initData`, not `initDataUnsafe`. Supply the bot token only through server-side environment configuration.
+
+TON Connect `ton_proof` verification and wallet-link endpoints are not implemented. A connected wallet must not be treated as authenticated.
+
 ## Error envelope
 
 Errors include a stable machine-readable `error` field and a request identifier where applicable. Responses are JSON and use `Cache-Control: no-store`.
@@ -33,6 +39,7 @@ Errors include a stable machine-readable `error` field and a request identifier 
 ~~~bash
 npm install
 npm run api
+npm test
 ~~~
 
 Optional environment variables:
@@ -41,4 +48,4 @@ Optional environment variables:
 
 ## Security boundary
 
-This API does not authenticate Telegram users or verify wallet ownership. Do not add privileged writes until signed Telegram init data and wallet proof verification are implemented server-side.
+No authenticated write endpoints exist. Do not add privileged writes until Telegram init-data validation is connected to server-side sessions and TON wallet proof verification is implemented and tested.

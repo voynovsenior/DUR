@@ -98,7 +98,7 @@ The backend creates a `schema_migrations` table and applies identity, wallet-lin
 
 - independent review of the TON Proof verifier and its supported wallet parsers;
 - additional reviewed wallet versions (including V5 and WalletTg) where required;
-- database migrations and backup/restore procedure;
+- tested backup and restore procedure;
 - distributed rate limiting at the edge or in shared storage;
 - monitoring, structured redacted logs, and operational alerts;
 - CSRF and deployment-origin review before enabling additional cookie-authenticated state-changing routes;

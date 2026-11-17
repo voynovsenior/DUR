@@ -133,6 +133,16 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    if (req.method === 'GET' && url.pathname === '/v1/issuers') {
+      send(res, 200, { issuers: attestations.listActiveIssuers() });
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/v1/schemas') {
+      send(res, 200, { schemas: schemas.listActive() });
+      return;
+    }
+
     if (req.method === 'GET' && url.pathname === '/v1/indexer/status') {
       const checkpoint = chainEvents.getCheckpoint('ton-testnet');
       send(res, 200, {

@@ -545,7 +545,7 @@ export function createApiServer(options: ApiOptions = {}) {
           return;
         }
         const now = Math.floor(Date.now() / 1000);
-        const expiresAt = body.expiresAt === undefined ? null : body.expiresAt;
+        const expiresAt = body.expiresAt === undefined ? null : body.expiresAt as number | null;
         if (expiresAt !== null &&
             (!Number.isSafeInteger(expiresAt) || (expiresAt as number) <= now ||
              (expiresAt as number) > now + 365 * 24 * 60 * 60)) {
@@ -559,7 +559,7 @@ export function createApiServer(options: ApiOptions = {}) {
             purpose, created_at, expires_at
           ) VALUES (?, ?, '-3', ?, ?, ?, ?, ?, ?, ?)
         `).run(id, user.id, walletAddress, body.issuerId, body.schemaId,
-          body.schemaVersion, body.purpose.trim(), now, expiresAt);
+          body.schemaVersion as number, body.purpose.trim(), now, expiresAt);
         send(res, 201, {
           id,
           network: '-3',

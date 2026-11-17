@@ -46,7 +46,7 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [ ] Anti-abuse evaluation and false-positive review
 
 ## 0.5 — Escrow Testnet research
-- [ ] State-machine specification
+- [x] Escrow lifecycle specification and pure state-transition model with validation tests
 - [ ] Threat model and invariants
 - [ ] Tolk contract implementation
 - [ ] Unit, integration and adversarial tests

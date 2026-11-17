@@ -121,4 +121,4 @@ Responses are JSON and use `Cache-Control: no-store`. Errors include a machine-r
 
 ## Security boundary
 
-A connected wallet must not be treated as authenticated until the backend has accepted a fresh `ton_proof`. The current wallet-link flow is a development implementation for a limited wallet set and has not passed CI or real-wallet Testnet QA. Reputation, attestations, and escrow remain unavailable.
+A connected wallet must not be treated as authenticated until the backend has accepted a fresh `ton_proof`. The current wallet-link flow is a development implementation for a limited wallet set and has not passed CI or real-wallet Testnet QA. Reputation profiles and escrow operations remain unavailable. Attestation writes are restricted to authenticated issuers; public subject-consented profiles are not implemented.

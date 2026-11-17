@@ -110,7 +110,7 @@ export function createApiServer(options: ApiOptions = {}) {
       res.setHeader('access-control-allow-credentials', 'true');
       res.setHeader('vary', 'Origin');
       res.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
-      res.setHeader('access-control-allow-headers', 'content-type');
+      res.setHeader('access-control-allow-headers', 'content-type, authorization');
     }
 
     if (req.method === 'OPTIONS') {

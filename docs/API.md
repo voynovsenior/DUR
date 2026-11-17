@@ -16,13 +16,13 @@ Returns protocol version and explicit capability flags. A capability marked `not
 
 ### POST /v1/auth/telegram
 
-Accepts raw Telegram Mini App init data:
+Requires `Content-Type: application/json` and accepts raw Telegram Mini App init data:
 
 ~~~json
 { "initData": "<raw Telegram.WebApp.initData>" }
 ~~~
 
-The server validates the Telegram HMAC signature and freshness, then creates or updates the DUR account and sets an HttpOnly session cookie.
+The server validates the Telegram HMAC signature and freshness, rejects duplicate parameters and malformed user data, then creates or updates the DUR account and sets an HttpOnly session cookie. Requests with another media type receive HTTP 415; malformed or expired authentication data is rejected.
 
 Do not send `initDataUnsafe`. Do not send the bot token to the frontend.
 

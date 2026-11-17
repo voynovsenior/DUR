@@ -96,6 +96,7 @@ export function createApiServer(options: ApiOptions = {}) {
   const tonProofDomain = options.tonProofDomain ?? process.env.TON_APP_DOMAIN ?? '';
   const tonNetworkId = options.tonNetworkId ?? process.env.TON_NETWORK_ID ?? '-3';
   const adminToken = options.adminToken ?? process.env.DUR_ADMIN_TOKEN ?? '';
+  const tonProofConfigured = Boolean(tonProofDomain) && tonNetworkId === '-3';
 
   const server = createServer(async (req, res) => {
     const requestId = randomUUID();
@@ -137,7 +138,7 @@ export function createApiServer(options: ApiOptions = {}) {
         capabilities: {
           telegramVerification: 'implemented',
           telegramSessions: 'implemented',
-          tonProof: tonProofDomain ? 'configured' : 'configuration_required',
+          tonProof: tonProofConfigured ? 'configured' : tonProofDomain ? 'unsupported_network' : 'configuration_required',
           reputation: 'not_implemented',
           attestations: 'issuer_registry_available',
           escrow: 'not_implemented',
@@ -186,7 +187,7 @@ export function createApiServer(options: ApiOptions = {}) {
     }
 
     if (req.method === 'POST' && url.pathname === '/v1/auth/ton/challenge') {
-      if (!tonProofDomain) {
+      if (!tonProofConfigured) {
         send(res, 503, { error: 'ton_proof_not_configured', requestId });
         return;
       }

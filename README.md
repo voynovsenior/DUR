@@ -49,10 +49,10 @@ The first UI package includes:
 | Telegram bot | Starter implementation |
 | TON Connect | UI integration; manifest must be configured |
 | Reputation engine | Not implemented |
-| Attestation registry | Issuer-authenticated issuance/revocation foundation; schema validation and subject consent pending |
+| Attestation registry | Issuer-authenticated issuance/revocation with immutable JSON Schema validation; subject consent and issuer trust policy pending |
 | Developer SDK | TypeScript issuer SDK for attestation operations; broader profile/query SDK pending |
 | Escrow contracts | Not implemented |
-| Backend API | Telegram authentication, session management and limited TON Proof wallet linking implemented; reputation/attestation/escrow APIs pending |
+| Backend API | Telegram authentication, TON Proof wallet linking, issuer/schema APIs, and read-only indexer endpoints; reputation and escrow APIs pending |
 | Chain indexer | Manual TON Testnet API v3 ingestion and durable checkpoints; cryptographic verification pending |
 
 ## Repository structure
@@ -64,7 +64,7 @@ The first UI package includes:
 ├── backend/src/indexer/    # Testnet chain ingestion adapter
 ├── backend/
 │   ├── src/identity/       # Telegram and TON proof verification, SQLite accounts, sessions and wallet links
-│   ├── src/attestations/   # Canonical claim validation and digest helper
+│   ├── src/attestations/   # Issuer registry, JSON Schema validation and attestation lifecycle
 │   ├── src/server.ts       # HTTP API
 │   └── test/               # API and identity tests
 ├── docs/

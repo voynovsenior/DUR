@@ -105,14 +105,14 @@ export function createApiServer(options: ApiOptions = {}) {
     const url = new URL(req.url ?? '/', 'http://localhost');
 
     if (req.method === 'GET' && url.pathname === '/healthz') {
-      send(res, 200, { ok: true, service: 'dur-api', version: '0.2.0' });
+      send(res, 200, { ok: true, service: 'dur-api', version: '0.3.0' });
       return;
     }
 
     if (req.method === 'GET' && url.pathname === '/v1/status') {
       send(res, 200, {
         protocol: 'DUR',
-        version: '0.2.0',
+        version: '0.3.0',
         environment: 'development-preview',
         network: tonNetworkId === '-3' ? 'ton-testnet' : 'configured-network-preview',
         capabilities: {

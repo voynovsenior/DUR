@@ -345,7 +345,7 @@ export function createApiServer(options: ApiOptions = {}) {
     }
 
     const attestationRoute = url.pathname.match(/^\/v1\/attestations\/([^/]+)(?:\/(revoke))?$/);
-    if (attestationRoute && req.method === 'GET') {
+    if (attestationRoute && !attestationRoute[2] && req.method === 'GET') {
       const issuer = attestations.authenticateIssuer(bearerToken(req));
       if (!issuer) {
         send(res, 401, { error: 'issuer_unauthorized', requestId });

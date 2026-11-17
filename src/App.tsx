@@ -353,7 +353,7 @@ export default function App() {
             <button className="connect-action" disabled={consentBusy || !wallet || walletStatus !== 'Wallet ownership verified'} onClick={grantConsent}>
               {consentBusy ? 'PLEASE WAIT…' : 'GRANT CONSENT'}
             </button>
-            <small>Only a wallet verified by DUR can grant consent. Grants are limited to the selected issuer and schema.</small>
+            <small>Only a wallet verified by DUR can grant consent. Grants expire after 90 days by default and are limited to the selected issuer and schema.</small>
           </div>
           {consentNotice && <div className="notice">{consentNotice}</div>}
           <Heading>YOUR CONSENT GRANTS</Heading>
@@ -362,7 +362,7 @@ export default function App() {
             const revoked = consent.revokedAt !== null;
             const expired = consent.expiresAt !== null && consent.expiresAt <= Math.floor(Date.now() / 1000);
             return <div className="consent-card" key={consent.id}>
-              <div><b>{consent.schemaId} · v{consent.schemaVersion}</b><small>{short(consent.issuerId)} · {short(consent.walletAddress)}</small></div>
+              <div><b>{consent.schemaId} · v{consent.schemaVersion}</b><small>{short(consent.issuerId)} · {short(consent.walletAddress)} · expires {consent.expiresAt ? new Date(consent.expiresAt * 1000).toLocaleDateString() : 'never'}</small></div>
               <span className={revoked || expired ? 'consent-inactive' : 'consent-active'}>{revoked ? 'REVOKED' : expired ? 'EXPIRED' : 'ACTIVE'}</span>
               <p>{consent.purpose}</p>
               {!revoked && !expired && <button className="revoke-action" disabled={consentBusy} onClick={() => revokeConsent(consent.id)}>REVOKE CONSENT</button>}

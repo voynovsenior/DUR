@@ -53,7 +53,7 @@ The first UI package includes:
 | Developer SDK | TypeScript issuer SDK for attestation operations; broader profile/query SDK pending |
 | Escrow contracts | Not implemented |
 | Backend API | Telegram authentication, session management and limited TON Proof wallet linking implemented; reputation/attestation/escrow APIs pending |
-| Chain indexer | Not implemented |
+| Chain indexer | Manual TON Testnet API v3 ingestion and durable checkpoints; cryptographic verification pending |
 
 ## Repository structure
 
@@ -61,6 +61,7 @@ The first UI package includes:
 .
 ├── bot/                    # Telegram bot (grammY)
 ├── sdk/                    # TypeScript issuer SDK
+├── backend/src/indexer/    # Testnet chain ingestion adapter
 ├── backend/
 │   ├── src/identity/       # Telegram and TON proof verification, SQLite accounts, sessions and wallet links
 │   ├── src/attestations/   # Canonical claim validation and digest helper
@@ -152,7 +153,7 @@ Never commit a real bot token. Do not send bot tokens, seed phrases, or private 
 - [API preview](docs/API.md)
 - [Protocol concepts](docs/PROTOCOL.md)
 - [Reputation methodology draft](docs/REPUTATION_METHODOLOGY.md)
-- [TON indexer architecture draft](docs/INDEXER.md)
+- [TON indexer architecture and current implementation](docs/INDEXER.md)
 - [Escrow Testnet specification draft](docs/ESCROW_SPEC.md)
 - [Issuer SDK](sdk/README.md)
 - [Security model](docs/SECURITY.md)

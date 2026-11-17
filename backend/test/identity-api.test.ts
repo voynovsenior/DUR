@@ -232,7 +232,8 @@ test('issuer issuance requires a registered schema and current wallet-owner cons
       }),
     });
     assert.equal(consent.status, 201);
-    const consentBody = await consent.json() as { id: string };
+    const consentBody = await consent.json() as { id: string; expiresAt: number };
+    assert.ok(consentBody.expiresAt > now);
 
     assert.equal((await issue({ completed: 'yes' })).status, 400);
     const issued = await issue({ completed: true });

@@ -12,7 +12,7 @@ This document describes design requirements; it is not an audit report. The curr
 ## Threats and required controls
 | Threat | Required control |
 |---|---|
-| Forged Telegram identity | Validate Telegram Web App raw init data server-side and enforce freshness |
+| Forged Telegram identity | Validate raw Telegram Web App init data server-side using HMAC-SHA-256 and enforce freshness |
 | Wallet address spoofing | Verify TON Connect proof server-side; never trust a client-supplied address |
 | Duplicate or replayed event | Canonical transaction parsing, event identity, idempotency and replay checks |
 | Fake transaction hash | Resolve and verify against canonical TON data |
@@ -22,6 +22,12 @@ This document describes design requirements; it is not an audit report. The curr
 | Disputed deal | Explicit dispute state; suspend positive reputation effects pending resolution |
 | Secret leakage | Environment variables or secret manager; no credentials in Git |
 | Contract exploit | Tests, static analysis, threat modeling and independent audit before mainnet |
+
+## Identity implementation status
+- Telegram init-data HMAC verification exists as a tested helper; it is not yet connected to a login route or session store.
+- TON Connect proof verification is not implemented.
+- No authenticated write endpoints are enabled.
+- Never trust `initDataUnsafe`, a client-supplied wallet address, or a client-supplied public key as proof of identity.
 
 ## Safe development rules
 - Use TON Testnet for experiments.

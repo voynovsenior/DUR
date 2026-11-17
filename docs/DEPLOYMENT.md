@@ -7,7 +7,8 @@ The repository is a prototype. Deployment makes the preview accessible; it does 
 1. Connect this repository to a static hosting provider that supports Vite.
 2. Set the build command to npm run build.
 3. Set the output directory to dist.
-4. Configure the public environment variable VITE_TONCONNECT_MANIFEST_URL with the full HTTPS URL of the manifest.
+4. Configure `VITE_TONCONNECT_MANIFEST_URL` with the full HTTPS manifest URL.
+5. Set `VITE_API_BASE_URL` to the API origin or leave it empty when the API is reverse-proxied under the app origin.
 5. Deploy and verify that the app and /tonconnect-manifest.json load publicly.
 
 ## Telegram Mini App
@@ -25,8 +26,10 @@ Run npm run api on a Node.js host with a persistent disk for SQLite. Configure p
 - DUR_DATABASE_PATH (optional; defaults to ./data/dur.sqlite)
 - COOKIE_SECURE=true
 - CORS_ORIGIN (exact HTTPS frontend origin)
+- TON_APP_DOMAIN (exact public dApp hostname, e.g. app.example.com)
+- TON_NETWORK_ID=-3 (Testnet)
 
-Keep the database directory out of static hosting. Back up the SQLite database securely. The API currently supports Telegram login/session endpoints; TON wallet proof verification is not implemented.
+Keep the database directory out of static hosting. Back up the SQLite database securely. The API supports Telegram login/session endpoints and Testnet-first TON Proof wallet linking for a limited set of standard wallets. The API and Mini App should share a site so SameSite=Strict cookies work; if separate subdomains are used, verify the cookie and CORS configuration before deployment.
 
 ## Bot hosting
 Run npm run bot on a Node.js host with private environment variables:

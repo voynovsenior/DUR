@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && npm run typecheck:backend && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "bot": "tsx bot/src/index.ts",
     "api": "tsx backend/src/server.ts",
-    "test": "node --import tsx --test backend/test/*.test.ts"
+    "test": "node --import tsx --test backend/test/*.test.ts",
+    "typecheck:backend": "tsc --noEmit -p tsconfig.backend.json"
   },
   "dependencies": {
     "@tonconnect/ui-react": "^2.3.0",

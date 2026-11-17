@@ -1,6 +1,6 @@
 # DUR Identity Layer
 
-Status: **Telegram authentication implemented; TON wallet authentication not yet implemented.**
+Status: **Telegram authentication and a Testnet-first TON Proof wallet-linking flow are implemented in code; CI verification and deployment configuration are still pending.**
 
 The Identity Layer links external identifiers to an internal DUR account only after the relevant proof has been verified. A Telegram account and a TON wallet are separate identity methods; neither proves that one person controls every linked account.
 
@@ -62,9 +62,17 @@ Environment:
 
 The API does not authenticate from `initDataUnsafe`. The frontend must send the raw `Telegram.WebApp.initData` string.
 
-## TON wallet verification — not implemented
+### TON Proof routes
 
-Wallet connection UI is not wallet authentication. The backend must implement TON Connect `ton_proof` before accepting a wallet link.
+- `POST /v1/auth/ton/challenge` — requires an active Telegram session; returns a random payload and sets a short-lived HttpOnly attempt cookie.
+- `POST /v1/auth/ton/verify` — requires the Telegram session, attempt cookie, matching challenge, configured domain/network, supported wallet state init, and a valid Ed25519 proof. Successful verification links the network-qualified wallet to the current DUR account.
+- `GET /v1/auth/wallets` — lists wallet addresses linked to the current DUR account.
+
+Challenges are stored as hashes, expire after ten minutes, are bound to the Telegram account and browser attempt, and are consumed with one atomic database operation. The verifier currently supports standard fixed-key wallet versions V1R1–V3R2 and V4R2. It intentionally rejects unknown wallet code hashes; V4R1, V5 and WalletTg are not yet supported.
+
+## TON wallet verification — implemented foundation, deployment pending
+
+Wallet connection UI alone is not wallet authentication. The backend now exposes a challenge-and-verification flow that links a supported wallet to an already authenticated Telegram account. The flow is unavailable until `TON_APP_DOMAIN` is configured.
 
 Required sequence:
 1. Create an unpredictable, single-use challenge on the backend and bind it to a server-side login attempt.
@@ -86,8 +94,8 @@ The backend creates a `schema_migrations` table and applies the initial identity
 
 ## Production hardening still required
 
-- persistent challenge store with atomic single-use consumption;
-- TON proof verifier covering explicitly supported wallet implementations;
+- independent review of the TON Proof verifier and its supported wallet parsers;
+- additional reviewed wallet versions (including V5 and WalletTg) where required;
 - database migrations and backup/restore procedure;
 - distributed rate limiting at the edge or in shared storage;
 - monitoring, structured redacted logs, and operational alerts;

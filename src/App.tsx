@@ -193,6 +193,7 @@ export default function App() {
           schemaId,
           schemaVersion: Number(version),
           purpose: purpose.trim(),
+          expiresAt: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60,
         }),
       });
       if (!response.ok) {

@@ -1,0 +1,31 @@
+# Security model
+
+This document describes design requirements; it is not an audit report. The current prototype is not suitable for custody, payments or production escrow.
+
+## Assets
+- Telegram bot token and backend credentials;
+- wallet ownership and signature-verification flows;
+- profile and attestation integrity;
+- reputation calculation inputs and outputs;
+- future contract state and escrowed assets.
+
+## Threats and required controls
+| Threat | Required control |
+|---|---|
+| Forged Telegram identity | Validate Telegram Web App raw init data server-side and enforce freshness |
+| Wallet address spoofing | Verify TON Connect proof server-side; never trust a client-supplied address |
+| Duplicate or replayed event | Canonical transaction parsing, event identity, idempotency and replay checks |
+| Fake transaction hash | Resolve and verify against canonical TON data |
+| Sybil accounts | Multi-signal risk controls; never equate one wallet with one human |
+| Collusive reviews | Counterparty concentration and graph analysis with review |
+| Malicious issuer | Issuer registration, trust tiers, revocation and evidence policy |
+| Disputed deal | Explicit dispute state; suspend positive reputation effects pending resolution |
+| Secret leakage | Environment variables or secret manager; no credentials in Git |
+| Contract exploit | Tests, static analysis, threat modeling and independent audit before mainnet |
+
+## Safe development rules
+- Use TON Testnet for experiments.
+- Never request or store seed phrases or private keys.
+- Do not treat frontend checks as security controls.
+- Do not claim an event is verified unless its source and verification procedure are recorded.
+- Do not deploy real-value escrow without complete review and independent audit.

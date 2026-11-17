@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8787`
 
-The API is an early development service. Telegram authentication and session endpoints are implemented. TON wallet verification, reputation, attestations, indexing, and escrow are not implemented.
+The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation, persistent attestation registry, indexing, and escrow are not implemented.
 
 ## GET /healthz
 
@@ -33,6 +33,24 @@ Returns the current authenticated Telegram account. Returns HTTP 401 when the se
 ### POST /v1/auth/logout
 
 Revokes the current server-side session and expires its cookie.
+
+### POST /v1/auth/ton/challenge
+
+Requires an authenticated Telegram session. Returns a random, short-lived payload and sets an HttpOnly attempt cookie. The payload is bound to the account and browser attempt.
+
+### POST /v1/auth/ton/verify
+
+Requires JSON containing the TON Connect address, network, wallet state init and `ton_proof`. The server validates the exact configured domain and network, derives the address and public key from a supported wallet state init, verifies the Ed25519 signature, and atomically consumes the challenge before linking the wallet to the Telegram account. Unknown wallet versions are rejected.
+
+### GET /v1/auth/wallets
+
+Lists network-qualified wallets linked to the current authenticated Telegram account.
+
+Required server environment:
+- `TON_APP_DOMAIN` — exact dApp hostname without scheme or path (must be a valid dApp domain).
+- `TON_NETWORK_ID` — TON global network ID; defaults to `-3` (Testnet).
+
+Supported fixed-key wallet versions currently include V1R1–V3R2 and V4R2. V4R1, V5, WalletTg and other unrecognized code hashes are rejected until separately implemented and reviewed.
 
 ## GET /v1/profiles/{identifier}
 

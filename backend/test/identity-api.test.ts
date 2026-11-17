@@ -303,7 +303,7 @@ test('CORS preflight permits the authorization header only for the configured or
 
 test('Telegram login applies a per-IP fixed-window rate limit', async () => {
   await withServer(async base => {
-    const responses = [];
+    const responses: Response[] = [];
     for (let index = 0; index < 11; index++) {
       responses.push(await fetch(`${base}/v1/auth/telegram`, {
         method: 'POST',

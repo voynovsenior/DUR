@@ -44,6 +44,18 @@ paths:
                       attestations: { type: string, const: issuer_registry_available }
                       escrow: { type: string, const: not_implemented }
                       chainIndexing: { type: string, const: manual_testnet_sync_available }
+  /v1/issuers:
+    get:
+      summary: List active issuers
+      responses:
+        '200':
+          description: Public issuer directory
+  /v1/schemas:
+    get:
+      summary: List active attestation schema versions
+      responses:
+        '200':
+          description: Public schema directory
   /v1/auth/consents:
     get:
       summary: List consent grants owned by the authenticated user

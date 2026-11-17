@@ -60,7 +60,7 @@ Returns HTTP 501 with `not_implemented`. No reputation profile is fabricated.
 
 ~~~bash
 npm install
-TELEGRAM_BOT_TOKEN="your-bot-token" COOKIE_SECURE=false npm run api
+TELEGRAM_BOT_TOKEN="your-bot-token" TON_APP_DOMAIN="app.example.com" TON_NETWORK_ID="-3" COOKIE_SECURE=false npm run api
 ~~~
 
 Use a private local environment. Never commit a real bot token. In deployed environments, keep Secure cookies enabled and set `CORS_ORIGIN` to the exact HTTPS frontend origin.
@@ -78,4 +78,4 @@ Responses are JSON and use `Cache-Control: no-store`. Errors include a machine-r
 
 ## Security boundary
 
-TON Connect `ton_proof` verification and wallet-link endpoints are not implemented. A connected wallet must not be treated as authenticated. Reputation, attestations, and escrow remain unavailable.
+A connected wallet must not be treated as authenticated until the backend has accepted a fresh `ton_proof`. The current wallet-link flow is a development implementation for a limited wallet set and has not passed CI or real-wallet Testnet QA. Reputation, attestations, and escrow remain unavailable.

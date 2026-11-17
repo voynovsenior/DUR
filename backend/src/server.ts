@@ -6,9 +6,12 @@ import { pathToFileURL } from 'node:url';
 import { openDatabase, type DurDatabase } from './identity/database';
 import { SessionService } from './identity/sessions';
 import { verifyTelegramInitData } from './identity/telegram';
+import { TonProofChallengeStore } from './identity/ton-proof-challenges';
+import { verifyTonProof, type TonProofRequest } from './identity/ton-proof';
 
 const port = Number(process.env.API_PORT ?? 8787);
 const COOKIE_NAME = 'dur_session';
+const TON_ATTEMPT_COOKIE = 'dur_ton_attempt';
 const MAX_BODY_BYTES = 16_384;
 
 type ApiOptions = {
@@ -16,6 +19,8 @@ type ApiOptions = {
   botToken?: string;
   allowedOrigin?: string;
   secureCookies?: boolean;
+  tonProofDomain?: string;
+  tonNetworkId?: string;
 };
 
 function send(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
@@ -58,17 +63,20 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   }
 }
 
-function cookie(token: string, secure: boolean, maxAge: number) {
-  return `${COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
+function cookie(name: string, token: string, secure: boolean, maxAge: number, path = '/') {
+  return `${name}=${encodeURIComponent(token)}; Path=${path}; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
 }
 
 export function createApiServer(options: ApiOptions = {}) {
   const db = options.db ?? openDatabase();
   const ownsDb = !options.db;
   const sessions = new SessionService(db);
+  const tonChallenges = new TonProofChallengeStore(db);
   const botToken = options.botToken ?? process.env.TELEGRAM_BOT_TOKEN ?? '';
   const allowedOrigin = options.allowedOrigin ?? process.env.CORS_ORIGIN ?? '';
   const secureCookies = options.secureCookies ?? process.env.COOKIE_SECURE !== 'false';
+  const tonProofDomain = options.tonProofDomain ?? process.env.TON_APP_DOMAIN ?? '';
+  const tonNetworkId = options.tonNetworkId ?? process.env.TON_NETWORK_ID ?? '-3';
 
   const server = createServer(async (req, res) => {
     const requestId = randomUUID();
@@ -110,7 +118,7 @@ export function createApiServer(options: ApiOptions = {}) {
         capabilities: {
           telegramVerification: 'implemented',
           telegramSessions: 'implemented',
-          tonProof: 'not_implemented',
+          tonProof: tonProofDomain ? 'configured' : 'configuration_required',
           reputation: 'not_implemented',
           attestations: 'not_implemented',
           escrow: 'not_implemented',
@@ -149,12 +157,102 @@ export function createApiServer(options: ApiOptions = {}) {
             firstName: verified.user.first_name,
           },
           expiresAt: created.expiresAt,
-        }, { 'set-cookie': cookie(created.token, secureCookies, 7 * 24 * 60 * 60) });
+        }, { 'set-cookie': cookie(COOKIE_NAME, created.token, secureCookies, 7 * 24 * 60 * 60) });
       } catch (error) {
         const code = error instanceof Error ? error.message : 'authentication_failed';
         const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 401;
         send(res, status, { error: status === 401 ? 'telegram_auth_failed' : code, requestId });
       }
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/v1/auth/ton/challenge') {
+      if (!tonProofDomain) {
+        send(res, 503, { error: 'ton_proof_not_configured', requestId });
+        return;
+      }
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      const challenge = tonChallenges.issue(user.id);
+      send(res, 200, { payload: challenge.payload, expiresAt: challenge.expiresAt }, {
+        'set-cookie': cookie(TON_ATTEMPT_COOKIE, challenge.attemptToken, secureCookies, 10 * 60, '/v1/auth/ton'),
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/v1/auth/ton/verify') {
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      if (!tonProofDomain) {
+        send(res, 503, { error: 'ton_proof_not_configured', requestId });
+        return;
+      }
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as TonProofRequest;
+        if (!body?.proof || typeof body.proof.payload !== 'string') {
+          send(res, 400, { error: 'invalid_request', requestId });
+          return;
+        }
+        const attemptToken = readCookie(req, TON_ATTEMPT_COOKIE);
+        if (!tonChallenges.matches(body.proof.payload, attemptToken, user.id)) {
+          send(res, 401, { error: 'challenge_invalid_or_expired', requestId });
+          return;
+        }
+        const verified = verifyTonProof(body, {
+          expectedDomain: tonProofDomain,
+          expectedNetwork: tonNetworkId,
+        });
+        if (!tonChallenges.consume(body.proof.payload, attemptToken, user.id)) {
+          send(res, 409, { error: 'challenge_already_consumed', requestId });
+          return;
+        }
+
+        const existing = db.prepare('SELECT user_id FROM wallet_links WHERE network = ? AND address = ?')
+          .get(verified.network, verified.address) as { user_id: string } | undefined;
+        if (existing && existing.user_id !== user.id) {
+          send(res, 409, { error: 'wallet_already_linked', requestId });
+          return;
+        }
+        if (!existing) {
+          db.prepare(`
+            INSERT INTO wallet_links (id, user_id, network, address, public_key, linked_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(randomUUID(), user.id, verified.network, verified.address,
+            body.public_key?.toLowerCase() ?? 'resolved-from-wallet-state-init', Math.floor(Date.now() / 1000));
+        }
+        send(res, 200, { verified: true, address: verified.address, network: verified.network }, {
+          'set-cookie': cookie(TON_ATTEMPT_COOKIE, '', secureCookies, 0, '/v1/auth/ton'),
+        });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'ton_proof_failed';
+        const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 401;
+        send(res, status, { error: status === 401 ? 'ton_proof_failed' : code, requestId });
+      }
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/v1/auth/wallets') {
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      const wallets = db.prepare(`
+        SELECT network, address, linked_at AS linkedAt
+        FROM wallet_links WHERE user_id = ? ORDER BY linked_at DESC
+      `).all(user.id);
+      send(res, 200, { wallets });
       return;
     }
 
@@ -172,7 +270,7 @@ export function createApiServer(options: ApiOptions = {}) {
       const token = readCookie(req, COOKIE_NAME);
       sessions.revoke(token);
       send(res, 200, { authenticated: false }, {
-        'set-cookie': cookie('', secureCookies, 0),
+        'set-cookie': cookie(COOKIE_NAME, '', secureCookies, 0),
       });
       return;
     }

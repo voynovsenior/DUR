@@ -23,7 +23,7 @@ function initData(authDate = now) {
 
 async function withServer(run: (base: string) => Promise<void>) {
   const db = openDatabase(':memory:');
-  const server = createApiServer({ db, botToken: token, secureCookies: false, tonProofDomain: 'dur.example', tonNetworkId: '-3', adminToken: 'unit-test-admin-value', adminToken: 'unit-test-admin-value' });
+  const server = createApiServer({ db, botToken: token, secureCookies: false, tonProofDomain: 'dur.example', tonNetworkId: '-3', adminToken: 'unit-test-admin-value' });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   assert.ok(address && typeof address !== 'string');
@@ -228,5 +228,26 @@ test('issuer admin creates an issuer and its key can issue and revoke attestatio
       body: JSON.stringify({ reason: 'Order disputed' }),
     });
     assert.equal(revoked.status, 200);
+  });
+});
+
+test('read-only indexer endpoints expose Testnet status and validate query filters', async () => {
+  await withServer(async base => {
+    const status = await fetch(`${base}/v1/indexer/status`);
+    assert.equal(status.status, 200);
+    const statusBody = await status.json() as { network: string; mode: string; trust: string; checkpoint: unknown };
+    assert.equal(statusBody.network, 'ton-testnet');
+    assert.equal(statusBody.mode, 'manual_sync');
+    assert.equal(statusBody.trust, 'provider_indexed_data_unverified');
+    assert.equal(statusBody.checkpoint, null);
+
+    const events = await fetch(`${base}/v1/indexer/events?limit=10&status=unverified`);
+    assert.equal(events.status, 200);
+    const eventsBody = await events.json() as { events: unknown[]; trust: string };
+    assert.deepEqual(eventsBody.events, []);
+    assert.equal(eventsBody.trust, 'provider_indexed_data_unverified');
+
+    const invalid = await fetch(`${base}/v1/indexer/events?limit=1000`);
+    assert.equal(invalid.status, 400);
   });
 });

@@ -1,7 +1,7 @@
 # Architecture
 
 ## Scope
-DUR is planned as a modular application and protocol layer for TON. This repository currently contains a frontend prototype, a minimal Telegram bot, a backend API foundation with Telegram init-data verification and persistent SQLite sessions, and project documentation. TON wallet proof verification, the indexer, reputation engine, attestation registry and escrow contracts remain unimplemented.
+DUR is planned as a modular application and protocol layer for TON. This repository currently contains a frontend prototype, a minimal Telegram bot, a backend API foundation with Telegram init-data verification and persistent SQLite sessions, and project documentation. The limited TON wallet proof verifier and wallet-link routes are implemented in code; real-wallet Testnet QA and deployment remain pending. The indexer, persistent attestation registry, reputation engine and escrow contracts remain unimplemented.
 
 ## Components
 1. **Telegram Mini App** — presentation and user interaction; treat it as an untrusted client.

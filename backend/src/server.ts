@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { openDatabase, type DurDatabase } from './identity/database';
@@ -8,6 +8,8 @@ import { SessionService } from './identity/sessions';
 import { verifyTelegramInitData } from './identity/telegram';
 import { TonProofChallengeStore } from './identity/ton-proof-challenges';
 import { verifyTonProof, type TonProofRequest } from './identity/ton-proof';
+import { AttestationRegistry } from './attestations/registry';
+import type { JsonValue } from './attestations/model';
 
 const port = Number(process.env.API_PORT ?? 8787);
 const COOKIE_NAME = 'dur_session';
@@ -21,6 +23,7 @@ type ApiOptions = {
   secureCookies?: boolean;
   tonProofDomain?: string;
   tonNetworkId?: string;
+  adminToken?: string;
 };
 
 function send(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
@@ -63,6 +66,20 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   }
 }
 
+function bearerToken(req: IncomingMessage): string | undefined {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) return undefined;
+  const token = header.slice(7).trim();
+  return token && token.length <= 512 ? token : undefined;
+}
+
+function secureTokenEquals(candidate: string | undefined, expected: string): boolean {
+  if (!candidate || !expected) return false;
+  const candidateHash = createHash('sha256').update(candidate).digest();
+  const expectedHash = createHash('sha256').update(expected).digest();
+  return timingSafeEqual(candidateHash, expectedHash);
+}
+
 function cookie(name: string, token: string, secure: boolean, maxAge: number, path = '/') {
   return `${name}=${encodeURIComponent(token)}; Path=${path}; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
 }
@@ -72,11 +89,13 @@ export function createApiServer(options: ApiOptions = {}) {
   const ownsDb = !options.db;
   const sessions = new SessionService(db);
   const tonChallenges = new TonProofChallengeStore(db);
+  const attestations = new AttestationRegistry(db);
   const botToken = options.botToken ?? process.env.TELEGRAM_BOT_TOKEN ?? '';
   const allowedOrigin = options.allowedOrigin ?? process.env.CORS_ORIGIN ?? '';
   const secureCookies = options.secureCookies ?? process.env.COOKIE_SECURE !== 'false';
   const tonProofDomain = options.tonProofDomain ?? process.env.TON_APP_DOMAIN ?? '';
   const tonNetworkId = options.tonNetworkId ?? process.env.TON_NETWORK_ID ?? '-3';
+  const adminToken = options.adminToken ?? process.env.DUR_ADMIN_TOKEN ?? '';
 
   const server = createServer(async (req, res) => {
     const requestId = randomUUID();
@@ -120,7 +139,7 @@ export function createApiServer(options: ApiOptions = {}) {
           telegramSessions: 'implemented',
           tonProof: tonProofDomain ? 'configured' : 'configuration_required',
           reputation: 'not_implemented',
-          attestations: 'not_implemented',
+          attestations: 'issuer_registry_available',
           escrow: 'not_implemented',
           chainIndexing: 'not_implemented',
         },
@@ -238,6 +257,124 @@ export function createApiServer(options: ApiOptions = {}) {
         const code = error instanceof Error ? error.message : 'ton_proof_failed';
         const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 401;
         send(res, status, { error: status === 401 ? 'ton_proof_failed' : code, requestId });
+      }
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/v1/admin/issuers') {
+      if (!adminToken) {
+        send(res, 503, { error: 'issuer_admin_not_configured', requestId });
+        return;
+      }
+      if (!secureTokenEquals(bearerToken(req), adminToken)) {
+        send(res, 401, { error: 'admin_unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as { displayName?: unknown; issuerType?: unknown };
+        if (!body || typeof body.displayName !== 'string' || typeof body.issuerType !== 'string') {
+          send(res, 400, { error: 'invalid_request', requestId });
+          return;
+        }
+        const created = attestations.createIssuer({ displayName: body.displayName, issuerType: body.issuerType });
+        send(res, 201, created);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'issuer_creation_failed';
+        const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 400;
+        send(res, status, { error: code, requestId });
+      }
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/v1/attestations') {
+      const issuer = attestations.authenticateIssuer(bearerToken(req));
+      if (!issuer) {
+        send(res, 401, { error: 'issuer_unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as {
+          schemaId?: unknown;
+          schemaVersion?: unknown;
+          subjectId?: unknown;
+          claim?: unknown;
+          evidenceRefs?: unknown;
+          expiresAt?: unknown;
+        };
+        if (!body || typeof body !== 'object') {
+          send(res, 400, { error: 'invalid_request', requestId });
+          return;
+        }
+        const issued = attestations.issue(issuer.id, {
+          schemaId: body.schemaId as string,
+          schemaVersion: body.schemaVersion as number,
+          subjectId: body.subjectId as string,
+          claim: body.claim as { [key: string]: JsonValue },
+          evidenceRefs: body.evidenceRefs as string[],
+          ...(body.expiresAt !== undefined ? { expiresAt: body.expiresAt as number } : {}),
+        });
+        send(res, 201, issued);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'attestation_issue_failed';
+        const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 400;
+        send(res, status, { error: code, requestId });
+      }
+      return;
+    }
+
+    const attestationRoute = url.pathname.match(/^\/v1\/attestations\/([^/]+)(?:\/(revoke))?$/);
+    if (attestationRoute && req.method === 'GET') {
+      const issuer = attestations.authenticateIssuer(bearerToken(req));
+      if (!issuer) {
+        send(res, 401, { error: 'issuer_unauthorized', requestId });
+        return;
+      }
+      const record = attestations.get(decodeURIComponent(attestationRoute[1]));
+      if (!record || record.issuerId !== issuer.id) {
+        send(res, 404, { error: 'attestation_not_found', requestId });
+        return;
+      }
+      send(res, 200, { attestation: record, events: attestations.listEvents(record.id) });
+      return;
+    }
+
+    if (attestationRoute && attestationRoute[2] === 'revoke' && req.method === 'POST') {
+      const issuer = attestations.authenticateIssuer(bearerToken(req));
+      if (!issuer) {
+        send(res, 401, { error: 'issuer_unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as { reason?: unknown };
+        if (!body || typeof body.reason !== 'string') {
+          send(res, 400, { error: 'invalid_request', requestId });
+          return;
+        }
+        const revoked = attestations.revoke(issuer.id, decodeURIComponent(attestationRoute[1]), body.reason);
+        if (!revoked) {
+          send(res, 404, { error: 'attestation_not_found_or_not_active', requestId });
+          return;
+        }
+        send(res, 200, { revoked: true });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'attestation_revoke_failed';
+        const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 400;
+        send(res, status, { error: code, requestId });
       }
       return;
     }

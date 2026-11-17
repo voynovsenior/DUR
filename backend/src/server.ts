@@ -114,7 +114,7 @@ export function createApiServer(options: ApiOptions = {}) {
         protocol: 'DUR',
         version: '0.2.0',
         environment: 'development-preview',
-        network: 'ton-testnet-planned',
+        network: tonNetworkId === '-3' ? 'ton-testnet' : 'configured-network-preview',
         capabilities: {
           telegramVerification: 'implemented',
           telegramSessions: 'implemented',

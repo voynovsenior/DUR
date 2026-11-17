@@ -158,7 +158,3 @@ export class ChainEventStore {
     return transaction();
   }
 }
-
-function cryptoRandomId() {
-  return createHash('sha256').update(`${Date.now()}:0.28883439180270143`).digest('hex');
-}

@@ -1,0 +1,66 @@
+openapi: 3.1.0
+info:
+  title: DUR API
+  version: 0.1.0
+  description: Read-only development preview API. Protocol capabilities are not yet implemented.
+servers:
+  - url: http://localhost:8787
+paths:
+  /healthz:
+    get:
+      summary: Service health
+      responses:
+        '200':
+          description: API process is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, service, version]
+                properties:
+                  ok: { type: boolean, const: true }
+                  service: { type: string, const: dur-api }
+                  version: { type: string, example: 0.1.0 }
+  /v1/status:
+    get:
+      summary: Protocol capability status
+      responses:
+        '200':
+          description: Explicit availability of planned modules
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [protocol, version, environment, network, capabilities]
+                properties:
+                  protocol: { type: string, const: DUR }
+                  version: { type: string }
+                  environment: { type: string }
+                  network: { type: string }
+                  capabilities:
+                    type: object
+                    properties:
+                      reputation: { type: string, const: not_implemented }
+                      attestations: { type: string, const: not_implemented }
+                      escrow: { type: string, const: not_implemented }
+                      chainIndexing: { type: string, const: not_implemented }
+  /v1/profiles/{identifier}:
+    get:
+      summary: Reputation profile placeholder
+      parameters:
+        - name: identifier
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '501':
+          description: Profile system is not implemented
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error, message, requestId]
+                properties:
+                  error: { type: string, const: not_implemented }
+                  message: { type: string }
+                  requestId: { type: string, format: uuid }

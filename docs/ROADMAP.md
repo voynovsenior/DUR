@@ -29,7 +29,8 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [ ] Mobile end-to-end authentication QA
 
 ## 0.3 — Evidence and attestations
-- [ ] Attestation schema and versioning
+- [x] Canonical claim validation and schema-version metadata helper
+- [ ] Persistent attestation schema registry and version lifecycle
 - [ ] Issuer registry and policies
 - [ ] Revocation and expiry
 - [ ] Canonical TON event verification

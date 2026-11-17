@@ -11,6 +11,7 @@ import { verifyTonProof, type TonProofRequest } from './identity/ton-proof';
 import { AttestationRegistry } from './attestations/registry';
 import type { JsonValue } from './attestations/model';
 import { ChainEventStore } from './indexer/event-store';
+import { AttestationSchemaRegistry } from './attestations/schema-registry';
 
 const port = Number(process.env.API_PORT ?? 8787);
 const COOKIE_NAME = 'dur_session';
@@ -92,6 +93,7 @@ export function createApiServer(options: ApiOptions = {}) {
   const tonChallenges = new TonProofChallengeStore(db);
   const attestations = new AttestationRegistry(db);
   const chainEvents = new ChainEventStore(db);
+  const schemas = new AttestationSchemaRegistry(db);
   const botToken = options.botToken ?? process.env.TELEGRAM_BOT_TOKEN ?? '';
   const allowedOrigin = options.allowedOrigin ?? process.env.CORS_ORIGIN ?? '';
   const secureCookies = options.secureCookies ?? process.env.COOKIE_SECURE !== 'false';
@@ -302,6 +304,47 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    if (req.method === 'POST' && url.pathname === '/v1/admin/schemas') {
+      if (!adminToken) {
+        send(res, 503, { error: 'schema_admin_not_configured', requestId });
+        return;
+      }
+      if (!secureTokenEquals(bearerToken(req), adminToken)) {
+        send(res, 401, { error: 'admin_unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as { schemaId?: unknown; schemaVersion?: unknown; schema?: unknown };
+        if (!body || typeof body.schemaId !== 'string' || typeof body.schemaVersion !== 'number') {
+          send(res, 400, { error: 'invalid_request', requestId });
+          return;
+        }
+        const registered = schemas.register(body.schemaId, body.schemaVersion, body.schema);
+        send(res, 201, registered);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'schema_registration_failed';
+        const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 400;
+        send(res, status, { error: code, requestId });
+      }
+      return;
+    }
+
+    const schemaRoute = url.pathname.match(/^\/v1\/schemas\/([^/]+)\/(\d+)$/);
+    if (schemaRoute && req.method === 'GET') {
+      const schema = schemas.get(schemaRoute[1], Number(schemaRoute[2]));
+      if (!schema) {
+        send(res, 404, { error: 'schema_not_found', requestId });
+        return;
+      }
+      send(res, 200, schema);
+      return;
+    }
+
     if (req.method === 'POST' && url.pathname === '/v1/admin/issuers') {
       if (!adminToken) {
         send(res, 503, { error: 'issuer_admin_not_configured', requestId });
@@ -368,6 +411,14 @@ export function createApiServer(options: ApiOptions = {}) {
           send(res, 400, { error: 'invalid_request', requestId });
           return;
         }
+        if (typeof body.schemaId !== 'string' || !Number.isSafeInteger(body.schemaVersion) ||
+            typeof body.subjectId !== 'string' || !body.claim || typeof body.claim !== 'object' ||
+            Array.isArray(body.claim) || !Array.isArray(body.evidenceRefs) ||
+            !body.evidenceRefs.every(reference => typeof reference === 'string')) {
+          send(res, 400, { error: 'invalid_request', requestId });
+          return;
+        }
+        schemas.validate(body.schemaId, body.schemaVersion as number, body.claim);
         const issued = attestations.issue(issuer.id, {
           schemaId: body.schemaId as string,
           schemaVersion: body.schemaVersion as number,

@@ -7,7 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "bot": "tsx bot/src/index.ts"
+    "bot": "tsx bot/src/index.ts",
+    "api": "tsx backend/src/server.ts",
+    "test": "node --import tsx --test backend/test/*.test.ts"
   },
   "dependencies": {
     "@tonconnect/ui-react": "^2.3.0",

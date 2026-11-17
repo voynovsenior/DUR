@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8787`
 
-The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation and escrow are not implemented. A manual TON Testnet ingestion adapter is available, but its indexed provider data remains explicitly unverified. The attestation registry has issuer-authenticated create/read/revoke endpoints but no public subject-consent or schema registry yet.
+The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation and escrow are not implemented. A manual TON Testnet ingestion adapter is available, but its indexed provider data remains explicitly unverified. The attestation registry has issuer-authenticated create/read/revoke endpoints but no public subject-consent workflow yet; versioned JSON Schema validation is implemented.
 
 ## GET /healthz
 
@@ -54,6 +54,14 @@ Supported fixed-key wallet versions currently include V1R1–V3R2 and V4R2. V4R1
 
 ## Attestation registry
 
+### POST /v1/admin/schemas
+
+Requires the server-side admin Bearer token. Registers an immutable `schemaId` and positive `schemaVersion` with a JSON Schema document. Duplicate versions are rejected.
+
+### GET /v1/schemas/{schemaId}/{version}
+
+Returns a registered schema version.
+
 ### POST /v1/admin/issuers
 
 Requires `Authorization: Bearer <DUR_ADMIN_TOKEN>` and JSON `{ "displayName": "Marketplace", "issuerType": "marketplace" }`. Creates an active issuer and returns its API key once. The server stores only the key digest. Keep `DUR_ADMIN_TOKEN` private and do not place it in frontend variables.
@@ -74,7 +82,7 @@ Requires the issuing issuer API key. Returns that issuer's attestation and event
 
 Requires the issuing issuer API key and JSON `{ "reason": "..." }`. Revocation is recorded as a status transition and event. Expired attestations cannot be revoked.
 
-Issuer trust tier defaults to `unverified`. The current registry validates the attestation envelope and canonical JSON but does not yet validate claim fields against a registered JSON Schema. Issuer claims are not independently verified facts.
+Issuer trust tier defaults to `unverified`. The registry validates claims against a registered JSON Schema before issuance. Subject consent and issuer trust-tier policy remain pending. Issuer claims are not independently verified facts.
 
 ## TON Testnet indexer
 

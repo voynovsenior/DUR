@@ -44,6 +44,44 @@ paths:
                       attestations: { type: string, const: issuer_registry_available }
                       escrow: { type: string, const: not_implemented }
                       chainIndexing: { type: string, const: manual_testnet_sync_available }
+  /v1/admin/schemas:
+    post:
+      summary: Register an immutable attestation JSON Schema version
+      security:
+        - AdminBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schemaId, schemaVersion, schema]
+              properties:
+                schemaId: { type: string }
+                schemaVersion: { type: integer, minimum: 1 }
+                schema: { type: object }
+      responses:
+        '201':
+          description: Schema version registered
+        '400':
+          description: Invalid or duplicate schema version
+  /v1/schemas/{schemaId}/{version}:
+    get:
+      summary: Retrieve a registered attestation schema
+      parameters:
+        - name: schemaId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Registered JSON Schema
+        '404':
+          description: Schema version not found
   /v1/indexer/status:
     get:
       summary: Testnet indexer checkpoint status
@@ -116,3 +154,8 @@ paths:
                   error: { type: string, const: not_implemented }
                   message: { type: string }
                   requestId: { type: string, format: uuid }
+components:
+  securitySchemes:
+    AdminBearer:
+      type: http
+      scheme: bearer

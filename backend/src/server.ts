@@ -291,6 +291,18 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    if (req.method === 'POST' && url.pathname === '/v1/issuers/me/revoke-key') {
+      const key = bearerToken(req);
+      const issuer = attestations.authenticateIssuer(key);
+      if (!issuer || !key) {
+        send(res, 401, { error: 'issuer_unauthorized', requestId });
+        return;
+      }
+      attestations.revokeIssuerKey(key);
+      send(res, 200, { revoked: true });
+      return;
+    }
+
     if (req.method === 'POST' && url.pathname === '/v1/attestations') {
       const issuer = attestations.authenticateIssuer(bearerToken(req));
       if (!issuer) {

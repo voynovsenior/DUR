@@ -118,7 +118,7 @@ export function verifyTonProof(
   options: TonProofOptions,
 ): { address: string; network: string; publicKey: string } {
   if (!request || typeof request !== 'object' || !request.proof) throw new Error('invalid_proof_request');
-  if (request.network !== options.expectedNetwork) throw new Error('wrong_network');
+  if (options.expectedNetwork !== '-3' || request.network !== '-3') throw new Error('wrong_network');
   const expectedLabels = options.expectedDomain.split('.');
   const validExpectedDomain = options.expectedDomain.length <= 128 && expectedLabels.length >= 2 &&
     expectedLabels.every(label => label.length >= 1 && label.length <= 63 &&

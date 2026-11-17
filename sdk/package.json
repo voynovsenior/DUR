@@ -1,0 +1,14 @@
+{
+  "name": "@dur-protocol/issuer-sdk",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/client.js",
+  "types": "./dist/client.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    }
+  }
+}

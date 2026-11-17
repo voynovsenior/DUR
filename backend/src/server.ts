@@ -339,7 +339,7 @@ export function createApiServer(options: ApiOptions = {}) {
         send(res, 401, { error: 'issuer_unauthorized', requestId });
         return;
       }
-      const record = attestations.get(decodeURIComponent(attestationRoute[1]));
+      const record = attestations.get(attestationRoute[1]);
       if (!record || record.issuerId !== issuer.id) {
         send(res, 404, { error: 'attestation_not_found', requestId });
         return;

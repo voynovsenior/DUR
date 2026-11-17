@@ -60,7 +60,8 @@ The first UI package includes:
 .
 ├── bot/                    # Telegram bot (grammY)
 ├── backend/
-│   ├── src/identity/       # Telegram verification, SQLite accounts and sessions
+│   ├── src/identity/       # Telegram and TON proof verification, SQLite accounts, sessions and wallet links
+│   ├── src/attestations/   # Canonical claim validation and digest helper
 │   ├── src/server.ts       # HTTP API
 │   └── test/               # API and identity tests
 ├── docs/
@@ -106,7 +107,7 @@ Vite prints a local development URL. A Telegram Mini App must be served over HTT
 
 1. Deploy the frontend to an HTTPS origin.
 2. Update `public/tonconnect-manifest.json` with the deployed app URL and a publicly reachable icon URL.
-3. Set `VITE_TONCONNECT_MANIFEST_URL` to the full HTTPS URL of that manifest.
+3. Set `VITE_TONCONNECT_MANIFEST_URL` to the full HTTPS URL of that manifest. Set `VITE_API_BASE_URL` if the API is hosted on a separate origin; leave it empty when `/v1` is reverse-proxied under the app origin.
 4. Confirm that the manifest is publicly accessible.
 
 The committed manifest contains placeholders. Wallet connection is not fully configured until those values are replaced.

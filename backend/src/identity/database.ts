@@ -43,5 +43,25 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+  const walletMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 2').get();
+  if (!walletMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS wallet_links (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          network TEXT NOT NULL,
+          address TEXT NOT NULL,
+          public_key TEXT NOT NULL,
+          linked_at INTEGER NOT NULL,
+          UNIQUE (network, address)
+        );
+        CREATE INDEX IF NOT EXISTS wallet_links_user_id_idx ON wallet_links(user_id);
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (2, ?)').run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

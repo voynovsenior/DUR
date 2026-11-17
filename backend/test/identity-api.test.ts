@@ -23,7 +23,7 @@ function initData(authDate = now) {
 
 async function withServer(run: (base: string) => Promise<void>) {
   const db = openDatabase(':memory:');
-  const server = createApiServer({ db, botToken: token, secureCookies: false });
+  const server = createApiServer({ db, botToken: token, secureCookies: false, tonProofDomain: 'dur.example', tonNetworkId: '-3' });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   assert.ok(address && typeof address !== 'string');
@@ -127,5 +127,36 @@ test('Telegram login rejects expired initData', async () => {
       body: JSON.stringify({ initData: expired }),
     });
     assert.equal(response.status, 401);
+  });
+});
+
+test('TON proof challenge requires a verified Telegram session and is bound to that session', async () => {
+  await withServer(async base => {
+    const anonymous = await fetch(`${base}/v1/auth/ton/challenge`, { method: 'POST' });
+    assert.equal(anonymous.status, 401);
+
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    const sessionCookie = login.headers.get('set-cookie')!.split(';')[0];
+
+    const challenge = await fetch(`${base}/v1/auth/ton/challenge`, {
+      method: 'POST',
+      headers: { cookie: sessionCookie },
+    });
+    assert.equal(challenge.status, 200);
+    const attemptCookie = challenge.headers.get('set-cookie')!.split(';')[0];
+    const body = await challenge.json() as { payload: string; expiresAt: number };
+    assert.ok(body.payload.length > 20);
+    assert.ok(body.expiresAt > Math.floor(Date.now() / 1000));
+
+    const invalidProof = await fetch(`${base}/v1/auth/ton/verify`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: `${sessionCookie}; ${attemptCookie}` },
+      body: JSON.stringify({ address: '0:invalid', network: '-3', proof: { payload: body.payload } }),
+    });
+    assert.equal(invalidProof.status, 401);
   });
 });

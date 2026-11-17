@@ -24,7 +24,7 @@ const MAX_DEPTH = 16;
 function canonicalJson(value: unknown, depth = 0): string {
   if (depth > MAX_DEPTH) throw new Error('claim_too_deep');
   if (value === null || typeof value === 'string' || typeof value === 'boolean') {
-    return JSON.stringify(value);
+    return JSON.stringify(value) as string;
   }
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) throw new Error('claim_invalid_number');

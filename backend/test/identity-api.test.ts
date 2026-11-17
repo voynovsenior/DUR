@@ -7,9 +7,9 @@ import { openDatabase } from '../src/identity/database';
 const token = '123456:LOCAL_TEST_TOKEN';
 const now = Math.floor(Date.now() / 1000);
 
-function initData() {
+function initData(authDate = now) {
   const fields = {
-    auth_date: String(now),
+    auth_date: String(authDate),
     user: JSON.stringify({ id: 987654, first_name: 'DUR Test', username: 'dur_test' }),
   };
   const check = Object.entries(fields)
@@ -105,4 +105,27 @@ test('auth endpoints do not create sessions when Telegram token is absent', asyn
     await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
     db.close();
   }
+});
+
+test('Telegram login rejects non-JSON request bodies', async () => {
+  await withServer(async base => {
+    const response = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: 'initData=not-json',
+    });
+    assert.equal(response.status, 415);
+  });
+});
+
+test('Telegram login rejects expired initData', async () => {
+  await withServer(async base => {
+    const expired = initData(now - 60 * 60 - 1);
+    const response = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: expired }),
+    });
+    assert.equal(response.status, 401);
+  });
 });

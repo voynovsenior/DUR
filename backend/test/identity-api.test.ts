@@ -300,3 +300,20 @@ test('CORS preflight permits the authorization header only for the configured or
     db.close();
   }
 });
+
+test('Telegram login applies a per-IP fixed-window rate limit', async () => {
+  await withServer(async base => {
+    const responses = [];
+    for (let index = 0; index < 11; index++) {
+      responses.push(await fetch(`${base}/v1/auth/telegram`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      }));
+    }
+    assert.equal(responses[0].status, 400);
+    assert.equal(responses[9].status, 400);
+    assert.equal(responses[10].status, 429);
+    assert.ok(Number(responses[10].headers.get('retry-after')) > 0);
+  });
+});

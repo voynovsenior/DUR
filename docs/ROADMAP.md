@@ -34,8 +34,10 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [x] Attestation issuance, expiry, revocation and event history
 - [x] Issuer API key revocation
 - [x] Registered immutable JSON Schema versions and claim validation
-- [ ] Subject-consent workflow
+- [x] Wallet-owner consent grants scoped to linked wallet, issuer and schema version
+- [x] Consent listing and revocation
 - [ ] Issuer trust-tier policy and administrative suspension workflow
+- [ ] Dispute and correction workflow
 - [x] Durable idempotent chain-event store and checkpoint migrations
 - [x] Manual TON Center API v3 Testnet ingestion adapter (records unverified provider data)
 - [ ] Cryptographic block/transaction proof verification

@@ -30,9 +30,10 @@ This roadmap is directional. Items are not complete until implemented, tested an
 
 ## 0.3 — Evidence and attestations
 - [x] Canonical claim validation and schema-version metadata helper
-- [ ] Persistent attestation schema registry and version lifecycle
-- [ ] Issuer registry and policies
-- [ ] Revocation and expiry
+- [x] Persistent issuer registry and hashed API-key authentication
+- [x] Attestation issuance, expiry, revocation and event history
+- [ ] Registered JSON Schema validation and subject-consent workflow
+- [ ] Issuer trust-tier policy and administrative suspension workflow
 - [ ] Canonical TON event verification
 - [ ] Duplicate and replay protection
 

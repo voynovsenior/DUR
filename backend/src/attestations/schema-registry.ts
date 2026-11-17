@@ -51,6 +51,14 @@ export class AttestationSchemaRegistry {
     return true;
   }
 
+  listActive() {
+    return this.db.prepare(`
+      SELECT schema_id AS schemaId, schema_version AS schemaVersion, status, created_at AS createdAt
+      FROM attestation_schemas WHERE status = 'active'
+      ORDER BY schema_id ASC, schema_version DESC
+    `).all();
+  }
+
   get(schemaId: string, version: number) {
     const row = this.db.prepare(`
       SELECT schema_id AS schemaId, schema_version AS schemaVersion,

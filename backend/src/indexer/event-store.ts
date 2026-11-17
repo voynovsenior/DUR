@@ -47,12 +47,13 @@ function validateCheckpoint(checkpoint: TonBlockCheckpoint) {
 }
 
 function validateEvent(event: NormalizedChainEvent) {
-  if (!event.network || !event.account || event.account.length > 128) throw new Error('invalid_event_account');
-  if (!/^[0-9]+$/.test(event.lt)) throw new Error('invalid_event_lt');
+  const tonAddress = /^(?:-1|0):[a-fA-F0-9]{64}$/;
+  if (!event.network || !tonAddress.test(event.account)) throw new Error('invalid_event_account');
+  if (!/^[0-9]{1,20}$/.test(event.lt) || BigInt(event.lt) > 18_446_744_073_709_551_615n) throw new Error('invalid_event_lt');
   if (!/^[a-fA-F0-9]{64}$/.test(event.txHash)) throw new Error('invalid_event_tx_hash');
   if (!Number.isSafeInteger(event.eventIndex) || event.eventIndex < 0) throw new Error('invalid_event_index');
   if (!/^[a-z][a-z0-9_.-]{1,63}$/.test(event.eventType)) throw new Error('invalid_event_type');
-  if (!event.sourceContract || event.sourceContract.length > 128) throw new Error('invalid_source_contract');
+  if (!tonAddress.test(event.sourceContract)) throw new Error('invalid_source_contract');
   if (!event.decoderVersion || event.decoderVersion.length > 64) throw new Error('invalid_decoder_version');
   if (!['verified', 'unverified', 'quarantined'].includes(event.verificationStatus)) {
     throw new Error('invalid_verification_status');

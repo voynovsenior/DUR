@@ -35,7 +35,9 @@ function readCookie(req: IncomingMessage, name: string): string | undefined {
   for (const part of cookie.split(';')) {
     const index = part.indexOf('=');
     if (index < 0) continue;
-    if (part.slice(0, index).trim() === name) {\n      try { return decodeURIComponent(part.slice(index + 1).trim()); } catch { return undefined; }\n    }
+    if (part.slice(0, index).trim() === name) {
+      try { return decodeURIComponent(part.slice(index + 1).trim()); } catch { return undefined; }
+    }
   }
   return undefined;
 }

@@ -125,5 +125,48 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+
+  const indexerMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 4').get();
+  if (!indexerMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS indexer_checkpoints (
+          network TEXT PRIMARY KEY,
+          seqno INTEGER NOT NULL,
+          root_hash TEXT NOT NULL,
+          file_hash TEXT NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS chain_events (
+          id TEXT PRIMARY KEY,
+          network TEXT NOT NULL,
+          account TEXT NOT NULL,
+          lt TEXT NOT NULL,
+          tx_hash TEXT NOT NULL,
+          event_index INTEGER NOT NULL,
+          event_type TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          source_contract TEXT NOT NULL,
+          source_code_hash TEXT,
+          decoder_version TEXT NOT NULL,
+          verification_status TEXT NOT NULL CHECK (verification_status IN ('verified', 'unverified', 'quarantined')),
+          observed_at INTEGER NOT NULL,
+          UNIQUE (network, account, lt, tx_hash, event_index)
+        );
+        CREATE INDEX IF NOT EXISTS chain_events_network_type_idx ON chain_events(network, event_type, observed_at DESC);
+        CREATE INDEX IF NOT EXISTS chain_events_account_idx ON chain_events(network, account, observed_at DESC);
+        CREATE TABLE IF NOT EXISTS chain_event_reviews (
+          id TEXT PRIMARY KEY,
+          chain_event_id TEXT NOT NULL REFERENCES chain_events(id),
+          status TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          created_at INTEGER NOT NULL
+        );
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (4, ?)').run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

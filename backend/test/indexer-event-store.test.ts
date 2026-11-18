@@ -155,3 +155,22 @@ test('indexer store does not attach transaction proofs to quarantined events', (
   }), /event_quarantined/);
   db.close();
 });
+
+test('indexer store normalizes raw account and hash casing for idempotency', () => {
+  const { db, store } = setup();
+  store.ingest(batch);
+  const replay = store.ingest({
+    ...batch,
+    events: [{
+      ...batch.events[0],
+      account: batch.events[0].account.toUpperCase(),
+      txHash: batch.events[0].txHash.toUpperCase(),
+      sourceContract: batch.events[0].sourceContract.toUpperCase(),
+      sourceCodeHash: batch.events[0].sourceCodeHash?.toUpperCase(),
+    }],
+  });
+  assert.equal(replay.inserted, 0);
+  assert.equal(replay.duplicates, 1);
+  assert.equal(store.listEvents({ network: 'ton-testnet' })[0].account, batch.events[0].account.toLowerCase());
+  db.close();
+});

@@ -17,12 +17,14 @@ The automated suite covers:
 - authenticated account lookup;
 - invalid signature rejection;
 - logout revocation;
+- profile visibility consent lifecycle, including linked-wallet enforcement, anonymous read access and immediate revocation;
 - disabled auth when the bot token is not configured;
 - strict CORS preflight and disallowed-origin rejection;
 - process-local login rate limiting;
 - issuer administration, immutable JSON Schema registration and invalid-claim rejection;
 - wallet-owner consent grants, expiry, revocation and consent-gated attestation issuance;
 - issuer suspension and terminal revocation;
+- subject SDK issuer/schema discovery and version validation;
 - indexer status/event API query validation.
 
 Identity API tests use an in-memory SQLite database and synthetic Telegram test data. They do not require a real bot token or Telegram account.
@@ -53,6 +55,7 @@ Identity API tests use an in-memory SQLite database and synthetic Telegram test 
 - evidence eligibility;
 - duplicate event idempotency;
 - disputed event handling;
+- open, rejected and upheld dispute eligibility semantics;
 - regression fixtures for methodology changes.
 
 ### Smart contracts

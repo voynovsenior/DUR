@@ -135,6 +135,15 @@ export type AttestationDispute = {
 
 export type ReputationTrustTier = "unverified" | "verified" | "trusted" | "official";
 
+export type ProfileVisibilityConsent = {
+  id: string;
+  network: "-3";
+  walletAddress: string;
+  createdAt: number;
+  expiresAt: number;
+  revokedAt: number | null;
+};
+
 export class DurSubjectClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
@@ -176,6 +185,27 @@ export class DurSubjectClient {
     return this.request<{ dispute: AttestationDispute }>(
       `/v1/attestations/${encodeURIComponent(attestationId)}/disputes`,
       { method: "POST", body: JSON.stringify({ reason, evidenceRefs }) },
+    );
+  }
+
+  listProfileVisibilityConsents() {
+    return this.request<{ consents: ProfileVisibilityConsent[] }>("/v1/auth/profile-visibility");
+  }
+
+  grantProfileVisibility(walletAddress: string, expiresAt?: number) {
+    return this.request<{
+      consent: ProfileVisibilityConsent;
+      disclosure: string;
+    }>("/v1/auth/profile-visibility", {
+      method: "POST",
+      body: JSON.stringify({ walletAddress, expiresAt }),
+    });
+  }
+
+  revokeProfileVisibility(consentId: string) {
+    return this.request<{ revoked: true; revokedAt: number }>(
+      `/v1/auth/profile-visibility/${encodeURIComponent(consentId)}/revoke`,
+      { method: "POST", body: JSON.stringify({}) },
     );
   }
 }

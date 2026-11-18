@@ -34,7 +34,7 @@ The initial deployment target is **TON Testnet**. The current wallet-proof verif
 
 The first UI package includes:
 
-- responsive, dark futuristic Telegram Mini App interface;
+- responsive, dark futuristic Telegram Mini App interface with authenticated owner-only attestation history and experimental reputation profile views;
 - Overview, Reputation, Attestations, Escrow, and Settings screens;
 - TON Connect wallet connection UI;
 - Telegram WebApp initialization and basic haptic feedback;

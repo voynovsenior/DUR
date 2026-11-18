@@ -214,5 +214,28 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+
+  const reputationMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 7').get();
+  if (!reputationMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS issuer_trust_events (
+          id TEXT PRIMARY KEY,
+          issuer_id TEXT NOT NULL REFERENCES issuers(id),
+          previous_tier TEXT NOT NULL,
+          new_tier TEXT NOT NULL,
+          actor TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          occurred_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS issuer_trust_events_issuer_idx
+          ON issuer_trust_events(issuer_id, occurred_at DESC);
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (7, ?)')
+        .run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

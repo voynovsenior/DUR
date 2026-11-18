@@ -27,7 +27,7 @@ export type AttestationEvent = {
 };
 
 function normalizeApiBaseUrl(value: string): string {
-  const baseUrl = value.trim().replace(/\\/+$/, "");
+  const baseUrl = value.trim().replace(/\/+$/, "");
   let parsed: URL;
   try {
     parsed = new URL(baseUrl);

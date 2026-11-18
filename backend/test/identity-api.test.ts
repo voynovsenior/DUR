@@ -360,7 +360,7 @@ test('admin trust review enables an owner-only reputation projection', async () 
     });
 
     const anonymousProfile = await fetch(`${base}/v1/profiles/${subjectId}/reputation`);
-    assert.equal(anonymousProfile.status, 401);
+    assert.equal(anonymousProfile.status, 404);
     const profile = await fetch(`${base}/v1/profiles/${subjectId}/reputation`, { headers: { cookie: sessionCookie } });
     assert.equal(profile.status, 200);
     const body = await profile.json() as {

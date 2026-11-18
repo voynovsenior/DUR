@@ -266,6 +266,75 @@ paths:
           description: Telegram session required
         '403':
           description: Subject wallet is not linked to the authenticated account
+  /v1/attestations/{id}/disputes:
+    post:
+      summary: Open an attestation dispute as the subject wallet owner
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 10, maxLength: 512 }
+                evidenceRefs:
+                  type: array
+                  maxItems: 10
+                  items: { type: string, minLength: 1, maxLength: 512 }
+      responses:
+        '201':
+          description: Dispute opened; evidence is excluded from reputation while open
+        '401':
+          description: Telegram session required
+        '403':
+          description: Caller does not own the subject wallet
+        '404':
+          description: Active attestation not found
+  /v1/auth/disputes:
+    get:
+      summary: List disputes opened by the authenticated account
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Disputes and their current resolution states
+        '401':
+          description: Telegram session required
+  /v1/admin/disputes/{id}/resolve:
+    post:
+      summary: Resolve an attestation dispute
+      security:
+        - AdminBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, reason]
+              properties:
+                status: { type: string, enum: [upheld, rejected] }
+                reason: { type: string, minLength: 10, maxLength: 512 }
+      responses:
+        '200':
+          description: Resolution recorded in the dispute audit history
+        '401':
+          description: Admin authentication required
+        '404':
+          description: Dispute not found
 components:
   securitySchemes:
     AdminBearer:

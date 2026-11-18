@@ -15,11 +15,13 @@ import (
 	"github.com/xssnick/tonutils-go/address"
 	"github.com/xssnick/tonutils-go/liteclient"
 	"github.com/xssnick/tonutils-go/ton"
+	"github.com/xssnick/tonutils-go/tlb"
+	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
 const (
 	testnetConfigURL = "https://ton.org/testnet-global.config.json"
-	verifierVersion  = "0.1.0"
+	verifierVersion  = "0.2.0"
 	defaultMaxScan   = 500
 	maxAllowedScan   = 10000
 	pageSize         = 100
@@ -46,6 +48,36 @@ type response struct {
 	ProofPolicy          string `json:"proofPolicy"`
 	VerifierVersion      string `json:"verifierVersion"`
 	Reason               string `json:"reason,omitempty"`
+	CurrentAccountCodeHash string `json:"currentAccountCodeHash,omitempty"`
+	EscrowEvents           []escrowLifecycleEvent `json:"escrowEvents,omitempty"`
+	EventDecodeErrors      []string `json:"eventDecodeErrors,omitempty"`
+}
+
+type escrowLifecycleEventBody struct {
+	_               tlb.Magic         `tlb:"#445552E0"`
+	SchemaVersion   uint8             `tlb:"## 8"`
+	DealID          uint64            `tlb:"## 64"`
+	EventSequence   uint32            `tlb:"## 32"`
+	EventType       uint8             `tlb:"## 4"`
+	PreviousState   uint8             `tlb:"## 3"`
+	NewState        uint8             `tlb:"## 3"`
+	Actor           *address.Address  `tlb:"addr"`
+	Counterparty    *address.Address  `tlb:"addr"`
+	TermsHash       []byte            `tlb:"bits 256"`
+	Decision        uint8             `tlb:"## 2"`
+}
+
+type escrowLifecycleEvent struct {
+	SchemaVersion uint8  `json:"schemaVersion"`
+	DealID        uint64 `json:"dealId"`
+	EventSequence uint32 `json:"eventSequence"`
+	EventType     string `json:"eventType"`
+	PreviousState string `json:"previousState"`
+	NewState      string `json:"newState"`
+	Actor         string `json:"actor"`
+	Counterparty  string `json:"counterparty"`
+	TermsHash     string `json:"termsHash"`
+	Decision      string `json:"decision"`
 }
 
 func parseRequest(r io.Reader) (request, *address.Address, uint64, []byte, error) {
@@ -89,6 +121,113 @@ func parseRequest(r io.Reader) (request, *address.Address, uint64, []byte, error
 	return req, addr, lt, hash, nil
 }
 
+func parseEscrowLifecycleEvent(body *cell.Cell) (escrowLifecycleEvent, error) {
+	var decoded escrowLifecycleEventBody
+	if body == nil {
+		return escrowLifecycleEvent{}, errors.New("empty_event_body")
+	}
+	if err := tlb.Parse(&decoded, body); err != nil {
+		return escrowLifecycleEvent{}, fmt.Errorf("invalid_escrow_event_body: %w", err)
+	}
+	if decoded.SchemaVersion != 1 {
+		return escrowLifecycleEvent{}, fmt.Errorf("unsupported_escrow_event_schema_version:%d", decoded.SchemaVersion)
+	}
+	eventTypes := map[uint8]string{
+		1: "accepted",
+		2: "funded",
+		3: "completion_marked",
+		4: "dispute_opened",
+		5: "dispute_vote_recorded",
+		6: "mutual_dispute_resolved",
+		7: "arbiter_dispute_resolved",
+		8: "released",
+		9: "refunded",
+		10: "cancelled",
+	}
+	states := map[uint8]string{
+		0: "created",
+		1: "accepted",
+		2: "funded",
+		3: "disputed",
+		4: "released",
+		5: "refunded",
+		6: "cancelled",
+	}
+	decisions := map[uint8]string{
+		0: "none",
+		1: "release_to_seller",
+		2: "refund_to_buyer",
+	}
+	eventType, ok := eventTypes[decoded.EventType]
+	if !ok {
+		return escrowLifecycleEvent{}, fmt.Errorf("unknown_escrow_event_type:%d", decoded.EventType)
+	}
+	previousState, ok := states[decoded.PreviousState]
+	if !ok {
+		return escrowLifecycleEvent{}, fmt.Errorf("unknown_previous_escrow_state:%d", decoded.PreviousState)
+	}
+	newState, ok := states[decoded.NewState]
+	if !ok {
+		return escrowLifecycleEvent{}, fmt.Errorf("unknown_new_escrow_state:%d", decoded.NewState)
+	}
+	decision, ok := decisions[decoded.Decision]
+	if !ok {
+		return escrowLifecycleEvent{}, fmt.Errorf("unknown_escrow_decision:%d", decoded.Decision)
+	}
+	if decoded.Actor == nil || decoded.Counterparty == nil || len(decoded.TermsHash) != 32 {
+		return escrowLifecycleEvent{}, errors.New("incomplete_escrow_event_fields")
+	}
+	return escrowLifecycleEvent{
+		SchemaVersion: decoded.SchemaVersion,
+		DealID:        decoded.DealID,
+		EventSequence: decoded.EventSequence,
+		EventType:     eventType,
+		PreviousState: previousState,
+		NewState:      newState,
+		Actor:         decoded.Actor.StringRaw(),
+		Counterparty:  decoded.Counterparty.StringRaw(),
+		TermsHash:     hex.EncodeToString(decoded.TermsHash),
+		Decision:      decision,
+	}, nil
+}
+
+func decodeEscrowLifecycleEvents(tx *tlb.Transaction) ([]escrowLifecycleEvent, []string) {
+	if tx == nil || tx.IO.Out == nil {
+		return nil, nil
+	}
+	messages, err := tx.IO.Out.ToSlice()
+	if err != nil {
+		return nil, []string{fmt.Sprintf("outgoing_messages_unavailable:%v", err)}
+	}
+	var events []escrowLifecycleEvent
+	var decodeErrors []string
+	for _, message := range messages {
+		if message.MsgType != tlb.MsgTypeExternalOut {
+			continue
+		}
+		external := message.AsExternalOut()
+		if external.Body == nil {
+			continue
+		}
+		slice, err := external.Body.BeginParse()
+		if err != nil {
+			decodeErrors = append(decodeErrors, "external_message_body_unreadable")
+			continue
+		}
+		opcode, err := slice.LoadUInt(32)
+		if err != nil || opcode != 0x445552E0 {
+			continue
+		}
+		event, err := parseEscrowLifecycleEvent(external.Body)
+		if err != nil {
+			decodeErrors = append(decodeErrors, err.Error())
+			continue
+		}
+		events = append(events, event)
+	}
+	return events, decodeErrors
+}
+
 func verify(ctx context.Context, req request, addr *address.Address, targetLT uint64, targetHash []byte) (response, error) {
 	result := response{
 		Verified:        false,
@@ -127,6 +266,9 @@ func verify(ctx context.Context, req request, addr *address.Address, targetLT ui
 		return result, errors.New("account_has_no_proved_transaction_history")
 	}
 	result.AccountLastTxLT = strconv.FormatUint(account.LastTxLT, 10)
+	if account.Code != nil {
+		result.CurrentAccountCodeHash = hex.EncodeToString(account.Code.Hash())
+	}
 
 	cursorLT := account.LastTxLT
 	cursorHash := append([]byte(nil), account.LastTxHash...)
@@ -153,6 +295,7 @@ func verify(ctx context.Context, req request, addr *address.Address, targetLT ui
 			if tx.LT == targetLT && bytes.Equal(tx.Hash, targetHash) {
 				result.Verified = true
 				result.ScannedTransactions = scanned
+				result.EscrowEvents, result.EventDecodeErrors = decodeEscrowLifecycleEvents(tx)
 				return result, nil
 			}
 		}

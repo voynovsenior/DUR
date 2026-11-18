@@ -848,6 +848,30 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    if (req.method === 'GET' && url.pathname === '/v1/auth/attestations') {
+      if (enforceLimit(res, requestId, clientKey(req, 'owner-attestation-history'), 30)) return;
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      const walletAddress = url.searchParams.get('walletAddress')?.toLowerCase();
+      if (!walletAddress || !/^0:[a-fA-F0-9]{64}$/.test(walletAddress)) {
+        send(res, 400, { error: 'invalid_wallet_address', requestId });
+        return;
+      }
+      const walletLink = db.prepare(
+        "SELECT 1 FROM wallet_links WHERE user_id = ? AND network = '-3' AND address = ?",
+      ).get(user.id, walletAddress);
+      if (!walletLink) {
+        send(res, 403, { error: 'wallet_not_linked', requestId });
+        return;
+      }
+      const subjectId = `wallet:-3:${walletAddress}`;
+      send(res, 200, { subjectId, attestations: attestations.listForSubject(subjectId) });
+      return;
+    }
+
     if (req.method === 'GET' && url.pathname === '/v1/auth/disputes') {
       const user = sessions.getUser(readCookie(req, COOKIE_NAME));
       if (!user) {

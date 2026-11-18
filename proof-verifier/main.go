@@ -55,6 +55,10 @@ func parseRequest(r io.Reader) (request, *address.Address, uint64, []byte, error
 	if err := decoder.Decode(&req); err != nil {
 		return req, nil, 0, nil, fmt.Errorf("invalid_request_json: %w", err)
 	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		return req, nil, 0, nil, errors.New("unexpected_trailing_json")
+	}
 	if req.Network != "testnet" {
 		return req, nil, 0, nil, errors.New("unsupported_network_testnet_only")
 	}
@@ -64,6 +68,9 @@ func parseRequest(r io.Reader) (request, *address.Address, uint64, []byte, error
 	addr, err := address.ParseRawAddr(req.Address)
 	if err != nil {
 		return req, nil, 0, nil, fmt.Errorf("invalid_address: %w", err)
+	}
+	if addr.Workchain() != 0 && addr.Workchain() != -1 {
+		return req, nil, 0, nil, errors.New("unsupported_workchain")
 	}
 	lt, err := strconv.ParseUint(req.LT, 10, 64)
 	if err != nil || lt == 0 {

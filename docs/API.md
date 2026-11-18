@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8787`
 
-The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. Reputation and escrow are not implemented. A manual TON Testnet ingestion adapter is available, but its indexed provider data remains explicitly unverified. The attestation registry has issuer-authenticated create/read/revoke endpoints but wallet-owner consent is required for issuance; owners can inspect and revoke their grants.
+The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. A first experimental reputation projection is available from reviewed issuer attestations; it is not a calibrated production trust score. Escrow is not implemented. A manual TON Testnet ingestion adapter is available, but its indexed provider data remains explicitly unverified. The attestation registry has issuer-authenticated create/read/revoke endpoints but wallet-owner consent is required for issuance; owners can inspect and revoke their grants.
 
 ## GET /healthz
 
@@ -110,7 +110,7 @@ Requires the issuing issuer API key. Returns that issuer's attestation and event
 
 Requires the issuing issuer API key and JSON `{ "reason": "..." }`. Revocation is recorded as a status transition and event. Expired attestations cannot be revoked.
 
-Issuer trust tier defaults to `unverified`. The registry validates claims against a registered JSON Schema Draft-07 before issuance. Issuer trust-tier policy and a dispute workflow remain pending. Issuer claims are not independently verified facts.
+Issuer trust tier defaults to `unverified`. The registry validates claims against a registered JSON Schema Draft-07 before issuance. Trust-tier changes are admin-controlled and reason-audited; a formal governance policy and dispute workflow remain pending. Issuer claims are not independently verified facts.
 
 ## TON Testnet indexer
 
@@ -124,9 +124,13 @@ Returns up to 100 recently ingested events. Optional query parameters: `network=
 
 Run a bounded manual sync with `npm run indexer:sync`. Configure `TONCENTER_API_URL` (Testnet API v3), optional `TONCENTER_API_KEY`, `INDEXER_START_SEQNO` for the first run, and `INDEXER_MAX_BLOCKS`. The first checkpoint must be chosen deliberately; an empty value is not interpreted as block zero. Later runs resume from the stored checkpoint.
 
-## GET /v1/profiles/{identifier}
+## Reputation profiles
 
-Returns HTTP 501 with `not_implemented`. No reputation profile is fabricated.
+### GET /v1/profiles/{subjectId}/reputation
+
+Accepts a canonical TON Testnet subject ID: `wallet:-3:0:<64-char-hex>`. Returns methodology version, four dimensions, per-dimension evidence and issuer counts, eligible evidence counts, computation time and limitations.
+
+Only active, unexpired attestations from active issuers with `verified`, `trusted`, or `official` tiers are eligible. Unverified issuers and all indexer events are excluded. Claims contribute only when they contain `reputation.dimensions` values from 0 to 100. Repeated attestations from the same issuer/schema pair are collapsed to the latest. The projection uses trust-tier weights and a 180-day half-life. It is experimental and must not be treated as a calibrated universal score.
 
 ## Local development
 
@@ -157,4 +161,4 @@ Responses are JSON and use `Cache-Control: no-store`. Errors include a machine-r
 
 ## Security boundary
 
-A connected wallet must not be treated as authenticated until the backend has accepted a fresh `ton_proof`. The current wallet-link flow is a development implementation for a limited wallet set and has not passed CI or real-wallet Testnet QA. Reputation profiles and escrow operations remain unavailable. Attestation writes are restricted to authenticated issuers; public subject-consented profiles are not implemented.
+A connected wallet must not be treated as authenticated until the backend has accepted a fresh `ton_proof`. The current wallet-link flow is a development implementation for a limited wallet set and has not passed CI or real-wallet Testnet QA. The reputation profile is an experimental attestation projection, not a production trust score. Escrow operations remain unavailable. Attestation writes are restricted to authenticated issuers; public subject-consented profiles are not implemented.

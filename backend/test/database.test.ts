@@ -6,7 +6,7 @@ test('database applies the initial schema migration', () => {
   const db = openDatabase(':memory:');
   try {
     const migrations = db.prepare('SELECT version FROM schema_migrations ORDER BY version').all() as Array<{ version: number }>;
-    assert.deepEqual(migrations, [{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }, { version: 5 }, { version: 6 }, { version: 7 }, { version: 8 }]);
+    assert.deepEqual(migrations, [{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }, { version: 5 }, { version: 6 }, { version: 7 }, { version: 8 }, { version: 9 }]);
 
     const userColumns = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>;
     assert.ok(userColumns.some(column => column.name === 'telegram_id'));
@@ -40,6 +40,9 @@ test('database applies the initial schema migration', () => {
 
     const disputes = db.prepare('PRAGMA table_info(attestation_disputes)').all() as Array<{ name: string }>;
     assert.ok(disputes.some(column => column.name === 'resolution_reason'));
+
+    const proofs = db.prepare('PRAGMA table_info(chain_event_transaction_proofs)').all() as Array<{ name: string }>;
+    assert.ok(proofs.some(column => column.name === 'masterchain_root_hash'));
   } finally {
     db.close();
   }

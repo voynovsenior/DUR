@@ -1,0 +1,10 @@
+[package]
+name = "dur-escrow"
+description = "DUR modular TON escrow contract prototype"
+version = "0.1.0"
+license = "MIT"
+
+[contracts.escrow]
+display-name = "DUR Escrow"
+src = "contracts/Escrow.tolk"
+depends = []

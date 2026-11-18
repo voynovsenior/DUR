@@ -338,6 +338,18 @@ test('admin trust review enables an explainable public reputation projection', a
 
     const registry = new AttestationRegistry(db);
     const subjectId = `wallet:-3:0:${'a'.repeat(64)}`;
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    assert.equal(login.status, 200);
+    const sessionCookie = login.headers.get('set-cookie')!.split(';')[0];
+    const loginBody = await login.json() as { user: { id: string } };
+    db.prepare(`
+      INSERT INTO wallet_links (id, user_id, network, address, public_key, linked_at)
+      VALUES (?, ?, '-3', ?, ?, ?)
+    `).run('reputation-wallet-link', loginBody.user.id, 'a'.repeat(64), 'b'.repeat(64), now);
     registry.issue(created.issuer.id, {
       schemaId: 'dur.reputation.sample',
       schemaVersion: 1,
@@ -346,7 +358,9 @@ test('admin trust review enables an explainable public reputation projection', a
       evidenceRefs: ['https://example.org/evidence/1'],
     });
 
-    const profile = await fetch(`${base}/v1/profiles/${subjectId}/reputation`);
+    const anonymousProfile = await fetch(`${base}/v1/profiles/${subjectId}/reputation`);
+    assert.equal(anonymousProfile.status, 401);
+    const profile = await fetch(`${base}/v1/profiles/${subjectId}/reputation`, { headers: { cookie: sessionCookie } });
     assert.equal(profile.status, 200);
     const body = await profile.json() as {
       subjectId: string;
@@ -366,7 +380,7 @@ test('admin trust review enables an explainable public reputation projection', a
     assert.equal(body.reputation.dimensions.delivery.value, 88);
     assert.equal(body.reputation.dimensions.communication.value, null);
 
-    const invalid = await fetch(`${base}/v1/profiles/not-a-wallet/reputation`);
+    const invalid = await fetch(`${base}/v1/profiles/not-a-wallet/reputation`, { headers: { cookie: sessionCookie } });
     assert.equal(invalid.status, 400);
   });
 });

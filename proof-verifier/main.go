@@ -69,7 +69,7 @@ type escrowLifecycleEventBody struct {
 
 type escrowLifecycleEvent struct {
 	SchemaVersion uint8  `json:"schemaVersion"`
-	DealID        uint64 `json:"dealId"`
+	DealID        string `json:"dealId"`
 	EventSequence uint32 `json:"eventSequence"`
 	EventType     string `json:"eventType"`
 	PreviousState string `json:"previousState"`
@@ -179,7 +179,7 @@ func parseEscrowLifecycleEvent(body *cell.Cell) (escrowLifecycleEvent, error) {
 	}
 	return escrowLifecycleEvent{
 		SchemaVersion: decoded.SchemaVersion,
-		DealID:        decoded.DealID,
+		DealID:        strconv.FormatUint(decoded.DealID, 10),
 		EventSequence: decoded.EventSequence,
 		EventType:     eventType,
 		PreviousState: previousState,

@@ -237,5 +237,46 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+
+  const disputeMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 8').get();
+  if (!disputeMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS attestation_disputes (
+          id TEXT PRIMARY KEY,
+          attestation_id TEXT NOT NULL REFERENCES attestations(id),
+          subject_id TEXT NOT NULL,
+          opened_by_user_id TEXT NOT NULL REFERENCES users(id),
+          reason TEXT NOT NULL,
+          evidence_refs_json TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('open', 'upheld', 'rejected')),
+          resolution_reason TEXT,
+          opened_at INTEGER NOT NULL,
+          resolved_at INTEGER
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS attestation_disputes_one_open_idx
+          ON attestation_disputes(attestation_id) WHERE status = 'open';
+        CREATE INDEX IF NOT EXISTS attestation_disputes_user_idx
+          ON attestation_disputes(opened_by_user_id, opened_at DESC);
+        CREATE INDEX IF NOT EXISTS attestation_disputes_attestation_idx
+          ON attestation_disputes(attestation_id, status);
+        CREATE TABLE IF NOT EXISTS attestation_dispute_events (
+          id TEXT PRIMARY KEY,
+          dispute_id TEXT NOT NULL REFERENCES attestation_disputes(id),
+          previous_status TEXT,
+          new_status TEXT NOT NULL,
+          actor TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          occurred_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS attestation_dispute_events_dispute_idx
+          ON attestation_dispute_events(dispute_id, occurred_at DESC);
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (8, ?)')
+        .run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

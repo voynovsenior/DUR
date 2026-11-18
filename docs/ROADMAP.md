@@ -37,7 +37,8 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [x] Wallet-owner consent grants scoped to linked wallet, issuer and schema version
 - [x] Consent listing and revocation
 - [x] Administrative issuer suspension and terminal revocation
-- [ ] Issuer trust-tier policy and trust-level review
+- [x] Admin trust-tier control with reason-audited history
+- [ ] Formal issuer trust policy and independent review
 - [ ] Dispute and correction workflow
 - [x] Durable idempotent chain-event store and checkpoint migrations
 - [x] Manual TON Center API v3 Testnet ingestion adapter (records unverified provider data)
@@ -46,10 +47,11 @@ This roadmap is directional. Items are not complete until implemented, tested an
 - [ ] Automated continuous indexer operation and recovery
 
 ## 0.4 — Reputation
-- [x] Public reputation methodology document (design draft)
-- [ ] Calibrated and tested reputation calculation implementation
-- [ ] Evidence eligibility rules
-- [ ] Explainable dimensions and aggregation
+- [x] Versioned experimental reputation methodology v0.1.0
+- [x] Deterministic reputation calculation with trust-tier and recency weights
+- [x] Evidence eligibility, expiry/revocation filtering and issuer/schema deduplication
+- [x] Explainable dimensions, coverage counts and public profile API
+- [ ] Calibration against reviewed datasets and independent methodology review
 - [ ] Dispute and correction workflow
 - [ ] Anti-abuse evaluation and false-positive review
 

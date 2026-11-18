@@ -24,6 +24,7 @@ The automated suite covers:
 - issuer administration, immutable JSON Schema registration and invalid-claim rejection;
 - wallet-owner consent grants, expiry, revocation and consent-gated attestation issuance;
 - issuer suspension and terminal revocation;
+- authenticated admin dispute queue access, status filtering and bounded pagination limits;
 - subject SDK issuer/schema discovery and version validation;
 - indexer status/event API query validation.
 

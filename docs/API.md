@@ -112,6 +112,20 @@ Requires the issuing issuer API key and JSON `{ "reason": "..." }`. Revocation i
 
 Issuer trust tier defaults to `unverified`. The registry validates claims against a registered JSON Schema Draft-07 before issuance. Trust-tier changes are admin-controlled and reason-audited; a formal governance policy and dispute workflow remain pending. Issuer claims are not independently verified facts.
 
+## Attestation disputes
+
+### POST /v1/attestations/{id}/disputes
+
+Requires an authenticated Telegram session and proof that the attestation subject wallet is linked to that account. Accepts a reason (10–512 characters) and up to 10 evidence references. Only the subject wallet owner can open a dispute against an active attestation. A second open dispute for the same attestation is rejected.
+
+### GET /v1/auth/disputes
+
+Lists disputes opened by the authenticated account.
+
+### POST /v1/admin/disputes/{id}/resolve
+
+Requires the admin Bearer token and JSON `{ "status": "upheld|rejected", "reason": "..." }`. Resolution is audit-recorded. Open disputes and upheld disputes are excluded from reputation projections; rejected disputes restore eligibility if the attestation is otherwise active and unexpired. This workflow records claims and decisions but does not independently establish facts.
+
 ## TON Testnet indexer
 
 ### GET /v1/indexer/status

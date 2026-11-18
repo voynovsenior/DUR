@@ -1,6 +1,6 @@
 # DUR Modular Escrow — Testnet Specification Draft
 
-Status: specification plus a pure off-chain state-transition model with tests. No executable TON escrow contract is deployed or available for real funds. The model does not verify signatures, participant authority, deadlines at chain level, or deposited funds.
+Status: experimental Tolk contract prototype, Acton build workflow, and off-chain state-transition model. The contract is not deployed and is not approved for real funds. Testnet-only validation is required before any deployment consideration.
 
 ## 1. Design boundary
 
@@ -21,7 +21,7 @@ The first implementation target is TON Testnet. Mainnet and real-value use are e
 | Resolved | A dispute resolution action completed | Released, Refunded |
 | Cancelled | Agreement ended before funding | Terminal |
 
-Exact transitions, deadlines and resolution authority must be fixed in the contract specification before implementation.
+The first Tolk prototype fixes the transitions and deadlines in contract storage. The terms and deadline fields are stored in a referenced cell to stay within TON's 1023-bit cell limit. The prototype supports seller acceptance, exact TON funding, seller completion, buyer approval, participant disputes, arbiter resolution, buyer refund after the dispute window when completion was not marked, and seller finalization after the dispute window when completion was marked and no dispute is open.
 
 ## 3. Required agreement fields
 
@@ -57,4 +57,4 @@ Exact transitions, deadlines and resolution authority must be fixed in the contr
 - sandbox/Testnet integration tests;
 - independent contract review and audit before any mainnet consideration.
 
-The current UI is a design preview only. It does not accept, lock, transfer or release funds.
+The UI remains a design preview and is not connected to this contract. The contract code has not passed its first Acton build/test run yet. No real funds or Mainnet use are permitted. Deployment reserve and payout behavior still require dedicated gas, bounce, and accounting review.

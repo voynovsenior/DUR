@@ -42,6 +42,7 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] Separate Go transaction proof verifier using a Testnet trust anchor and secure proof policy
 - [x] Admin API integration that stores transaction-proof provenance and decoded v1 escrow event observations
 - [x] Versioned v1 escrow lifecycle-event decoder in the proof verifier, extracting events from proof-verified transactions
+- [x] Structural event consistency checks for identity, participants, state transitions and resolution decisions
 - [ ] Contract address/code-hash allowlists and historical code-identity verification
 - [ ] Semantic verification policy: a proved transaction/event must not automatically become a verified DUR business event
 - [ ] End-to-end fixtures for supported contract versions, reorg/provider disagreement and recovery
@@ -56,7 +57,8 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] Draft escrow threat model and release-gate register
 - [x] Bilateral dispute-resolution votes; conflicting votes remain disputed and the arbiter retains override authority
 - [ ] Complete enforceable invariants and independent threat-model review
-- [ ] Property-based conservation and terminal-state tests
+- [x] Exhaustive pure state-transition graph tests, including terminal-state immutability
+- [ ] Property-based on-chain value-conservation and terminal-payout invariants
 - [ ] Adversarial tests for replay, malformed messages, timing boundaries, bounce and gas behavior
 - [ ] Resolve arbiter-unavailable / indefinite-dispute-lock risk
 - [x] Explicit versioned external lifecycle-event emission and proof-verifier decoder fixtures

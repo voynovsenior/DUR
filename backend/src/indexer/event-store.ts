@@ -128,6 +128,21 @@ export class ChainEventStore {
     return transaction();
   }
 
+  getEventForProof(id: string) {
+    return this.db.prepare(`
+      SELECT id, network, account, lt, tx_hash AS txHash,
+             verification_status AS verificationStatus
+      FROM chain_events WHERE id = ?
+    `).get(id) as {
+      id: string;
+      network: string;
+      account: string;
+      lt: string;
+      txHash: string;
+      verificationStatus: NormalizedChainEvent['verificationStatus'];
+    } | undefined ?? null;
+  }
+
   listEvents(input: { network: string; limit?: number; verificationStatus?: NormalizedChainEvent['verificationStatus'] }) {
     const limit = Math.max(1, Math.min(100, Math.trunc(input.limit ?? 50)));
     const rows = this.db.prepare(`

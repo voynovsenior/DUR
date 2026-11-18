@@ -16,6 +16,7 @@ enum Errors {
     InvalidFundingValue = 1004
     CompletionNotMarked = 1005
     InvalidResolution = 1006
+    InvalidTerms = 1007
 }
 
 struct ExtraFields {

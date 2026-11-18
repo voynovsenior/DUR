@@ -17,6 +17,7 @@ enum Errors {
     CompletionNotMarked = 1005
     InvalidResolution = 1006
     InvalidTerms = 1007
+    EventSequenceExhausted = 1008
 }
 
 struct ExtraFields {
@@ -33,6 +34,19 @@ enum ResolutionVote {
     RefundToBuyer = 2
 }
 
+enum EscrowEventType {
+    Accepted = 1
+    Funded = 2
+    CompletionMarked = 3
+    DisputeOpened = 4
+    DisputeVoteRecorded = 5
+    MutualDisputeResolved = 6
+    ArbiterDisputeResolved = 7
+    Released = 8
+    Refunded = 9
+    Cancelled = 10
+}
+
 struct Storage {
     buyer: address
     seller: address
@@ -42,6 +56,7 @@ struct Storage {
     completionMarked: bool
     buyerVote: ResolutionVote
     sellerVote: ResolutionVote
+    eventSequence: uint32
     extra: cell
 }
 
@@ -68,6 +83,19 @@ struct (0x44555206) ResolveDispute {
 }
 
 struct (0x4455520A) VoteResolution {
+    decision: ResolutionVote
+}
+
+struct (0x445552E0) EscrowLifecycleEvent {
+    schemaVersion: uint8
+    dealId: uint64
+    eventSequence: uint32
+    eventType: EscrowEventType
+    previousState: EscrowState
+    newState: EscrowState
+    actor: address
+    counterparty: address
+    termsHash: uint256
     decision: ResolutionVote
 }
 

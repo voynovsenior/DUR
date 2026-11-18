@@ -23,10 +23,11 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] Attestation issuance, expiry, revocation and event history
 - [x] Wallet-owner consent scoped to linked wallet, issuer and schema version
 - [x] Administrative issuer suspension, terminal revocation and reason-audited trust-tier changes
-- [x] Experimental Reputation methodology v0.1.0 with deterministic dimension projections
+- [x] Experimental Reputation methodology v0.2.0 with deterministic dimension projections and issuer-concentration diagnostics
 - [x] Trust-tier and 180-day half-life recency weighting
 - [x] Evidence eligibility, expiry/revocation filtering and issuer/schema deduplication
 - [x] Explainable dimensions, coverage counts and public profile API
+- [x] Issuer concentration index and largest-issuer-share diagnostics with explicit non-collusion caveats
 - [x] Dispute opening and administrative resolution with append-only dispute events
 - [x] Exclude open/upheld disputes from reputation eligibility; restore eligibility after rejected disputes only when all other checks pass
 - [ ] Publish a formal issuer trust policy and independent review process

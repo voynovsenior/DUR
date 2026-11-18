@@ -31,3 +31,19 @@ func TestParseRequestRejectsUnknownFields(t *testing.T) {
 		t.Fatal("expected unknown field rejection")
 	}
 }
+
+func TestParseRequestRejectsUnsupportedWorkchain(t *testing.T) {
+	input := `{"network":"testnet","address":"1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","lt":"123","hash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}`
+	_, _, _, _, err := parseRequest(strings.NewReader(input))
+	if err == nil || err.Error() != "unsupported_workchain" {
+		t.Fatalf("expected unsupported workchain rejection, got %v", err)
+	}
+}
+
+func TestParseRequestRejectsTrailingJSON(t *testing.T) {
+	input := `{"network":"testnet","address":"0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","lt":"123","hash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"} {}`
+	_, _, _, _, err := parseRequest(strings.NewReader(input))
+	if err == nil || err.Error() != "unexpected_trailing_json" {
+		t.Fatalf("expected trailing JSON rejection, got %v", err)
+	}
+}

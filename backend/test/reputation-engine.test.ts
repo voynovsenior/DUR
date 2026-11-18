@@ -20,9 +20,11 @@ const item = (overrides: Partial<ReputationEvidence> = {}): ReputationEvidence =
 
 test("reputation includes eligible evidence and exposes per-dimension coverage", () => {
   const result = calculateReputation([item()], now);
-  assert.equal(result.methodologyVersion, "0.1.0");
+  assert.equal(result.methodologyVersion, "0.2.0");
   assert.equal(result.dimensions.reliability.value, 90);
   assert.equal(result.dimensions.reliability.evidenceCount, 1);
+  assert.equal(result.dimensions.reliability.issuerConcentrationIndex, 1);
+  assert.equal(result.dimensions.reliability.largestIssuerShare, 1);
   assert.equal(result.dimensions.delivery.value, 80);
   assert.equal(result.eligibleIssuerCount, 1);
 });
@@ -54,6 +56,34 @@ test("independent issuers are combined using trust and recency weights", () => {
   assert.ok(result.dimensions.reliability.value !== null);
   assert.ok(result.dimensions.reliability.value < 100);
   assert.equal(result.dimensions.reliability.issuerCount, 2);
+});
+
+test("issuer concentration diagnostics distinguish independent evidence sources", () => {
+  const result = calculateReputation([
+    item({ id: "issuer-a", issuerId: "issuer-a" }),
+    item({ id: "issuer-b", issuerId: "issuer-b" }),
+  ], now);
+  assert.equal(result.dimensions.reliability.issuerCount, 2);
+  assert.equal(result.dimensions.reliability.issuerConcentrationIndex, 0.5);
+  assert.equal(result.dimensions.reliability.largestIssuerShare, 0.5);
+});
+
+test("issuer concentration aggregates multiple schemas from the same issuer", () => {
+  const result = calculateReputation([
+    item({ id: "schema-a", issuerId: "issuer-a", schemaId: "marketplace.v1" }),
+    item({ id: "schema-b", issuerId: "issuer-a", schemaId: "delivery.v1" }),
+    item({ id: "schema-c", issuerId: "issuer-b", schemaId: "marketplace.v1" }),
+  ], now);
+  assert.equal(result.dimensions.reliability.evidenceCount, 3);
+  assert.equal(result.dimensions.reliability.issuerCount, 2);
+  assert.equal(result.dimensions.reliability.issuerConcentrationIndex, 0.5556);
+  assert.equal(result.dimensions.reliability.largestIssuerShare, 0.6667);
+});
+
+test("issuer concentration is null when a dimension has no eligible evidence", () => {
+  const result = calculateReputation([], now);
+  assert.equal(result.dimensions.reliability.issuerConcentrationIndex, null);
+  assert.equal(result.dimensions.reliability.largestIssuerShare, null);
 });
 
 test("invalid or out-of-range dimension values are ignored", () => {

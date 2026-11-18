@@ -227,7 +227,7 @@ export function createApiServer(options: ApiOptions = {}) {
           telegramVerification: 'implemented',
           telegramSessions: 'implemented',
           tonProof: tonProofConfigured ? 'configured' : tonProofDomain ? 'unsupported_network' : 'configuration_required',
-          reputation: 'not_implemented',
+          reputation: 'experimental_attestation_projection_v0.1',
           attestations: 'issuer_registry_available',
           escrow: 'not_implemented',
           chainIndexing: 'manual_testnet_sync_available',

@@ -14,6 +14,7 @@ import type { JsonValue } from './attestations/model';
 import { ChainEventStore } from './indexer/event-store';
 import { AttestationSchemaRegistry } from './attestations/schema-registry';
 import { calculateReputation } from './reputation/engine';
+import { verifyTonTestnetTransaction } from './indexer/proof-verifier';
 
 const port = Number(process.env.API_PORT ?? 8787);
 const COOKIE_NAME = 'dur_session';
@@ -423,6 +424,73 @@ export function createApiServer(options: ApiOptions = {}) {
       } catch (error) {
         const code = error instanceof Error ? error.message : 'issuer_creation_failed';
         const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 400;
+        send(res, status, { error: code, requestId });
+      }
+      return;
+    }
+
+    const eventProofRoute = url.pathname.match(/^\/v1\/admin\/indexer\/events\/([^/]+)\/verify-transaction$/);
+    if (eventProofRoute && req.method === 'POST') {
+      if (enforceLimit(res, requestId, clientKey(req, 'indexer-event-proof-admin'), 10)) return;
+      if (!adminToken) {
+        send(res, 503, { error: 'indexer_admin_not_configured', requestId });
+        return;
+      }
+      if (!secureTokenEquals(bearerToken(req), adminToken)) {
+        send(res, 401, { error: 'admin_unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as { maxScan?: unknown };
+        if (body?.maxScan !== undefined &&
+            (!Number.isSafeInteger(body.maxScan) || (body.maxScan as number) < 1 || (body.maxScan as number) > 10_000)) {
+          send(res, 400, { error: 'invalid_max_scan', requestId });
+          return;
+        }
+        const event = chainEvents.getEventForProof(eventProofRoute[1]);
+        if (!event) {
+          send(res, 404, { error: 'indexer_event_not_found', requestId });
+          return;
+        }
+        if (event.network !== 'ton-testnet') {
+          send(res, 400, { error: 'unsupported_proof_network', requestId });
+          return;
+        }
+        if (event.verificationStatus === 'quarantined') {
+          send(res, 409, { error: 'indexer_event_quarantined', requestId });
+          return;
+        }
+        const proof = await verifyTonTestnetTransaction({
+          network: 'ton-testnet',
+          address: event.account,
+          lt: event.lt,
+          txHash: event.txHash,
+          maxScan: body?.maxScan as number | undefined,
+        });
+        if (!proof.verified) {
+          send(res, 422, { error: proof.reason ?? 'transaction_not_verified', proof, requestId });
+          return;
+        }
+        const recorded = chainEvents.markTransactionVerified(event.id, proof);
+        if (!recorded) {
+          send(res, 404, { error: 'indexer_event_not_found', requestId });
+          return;
+        }
+        send(res, 200, {
+          transactionProof: proof,
+          eventVerification: 'transaction_verified',
+          semanticVerification: 'pending',
+        });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'transaction_proof_verification_failed';
+        const status = code === 'proof_verifier_not_configured' ? 503
+          : code === 'proof_verifier_timeout' ? 504
+          : 502;
         send(res, status, { error: code, requestId });
       }
       return;

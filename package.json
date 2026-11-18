@@ -12,7 +12,8 @@
     "test": "node --import tsx --test backend/test/*.test.ts sdk/test/*.test.ts",
     "typecheck:backend": "tsc --noEmit -p tsconfig.backend.json",
     "build:sdk": "tsc -p tsconfig.sdk.json",
-    "indexer:sync": "tsx backend/src/indexer/run.ts"
+    "indexer:sync": "tsx backend/src/indexer/run.ts",
+    "indexer:worker": "tsx backend/src/indexer/worker.ts"
   },
   "dependencies": {
     "@tonconnect/ui-react": "^2.3.0",

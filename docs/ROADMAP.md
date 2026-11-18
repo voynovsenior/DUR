@@ -1,70 +1,89 @@
 # Roadmap
 
-This roadmap is directional. Items are not complete until implemented, tested and documented.
+This roadmap tracks implementation, validation and release gates. A checked item means the capability exists in the repository; it does not imply production readiness, independent audit, or Mainnet approval.
 
-## 0.1 — Interface prototype
-- [x] Dark futuristic Mini App shell
-- [x] Overview, Reputation, Attestations, Escrow and Settings views
-- [x] TON Connect UI integration point
-- [x] Basic Telegram bot commands
+## Stage 1 — Stabilization and application foundation
+
+- [x] Dark Telegram Mini App prototype with Overview, Reputation, Attestations, Escrow and Settings views
+- [x] Telegram bot starter implementation
+- [x] Backend API, OpenAPI contract and automated tests
+- [x] Telegram initData HMAC verification, login, persistent SQLite accounts and sessions
+- [x] Session expiry, revocation and logout
+- [x] Versioned SQLite migrations
+- [x] CI workflows for application, contracts and proof verifier
+- [ ] Confirm latest CI runs are green and keep dependency/security findings triaged
 - [ ] Configure HTTPS deployment and TON Connect manifest
 - [ ] Mobile QA inside Telegram
+- [ ] Backup/restore, production logging and distributed rate limiting
 
-## 0.2 — Application foundation
-- [x] Read-only backend API skeleton
-- [x] Initial API tests and OpenAPI contract
-- [x] Initial conceptual data model
-- [x] Telegram init data HMAC verification helper and unit tests
-- [x] Telegram login HTTP route
-- [x] Persistent SQLite account and session store
-- [x] Session expiry, revocation, and logout
-- [x] TON Connect proof verification for explicitly supported fixed-key wallet versions (V1R1–V3R2, V4R2)
-- [x] Persistent single-use wallet challenges bound to Telegram account and browser attempt
-- [x] Atomic challenge consumption and network-qualified wallet linking
-- [ ] Additional wallet versions (V4R1, V5, WalletTg) and independent verifier review
-- [ ] End-to-end testing with real TON Connect wallets on Testnet
-- [x] Versioned SQLite schema migrations (identity, wallet links and proof challenges)
-- [ ] Backup and restore strategy
-- [ ] Distributed rate limiting and operational logging
-- [ ] Mobile end-to-end authentication QA
+## Stage 2 — Reputation and attestations
 
-## 0.3 — Evidence and attestations
-- [x] Canonical claim validation and schema-version metadata helper
-- [x] Persistent issuer registry and hashed API-key authentication
+- [x] Persistent issuer registry with hashed API-key authentication and key revocation
+- [x] Immutable, versioned JSON Schema registry and canonical claim validation
 - [x] Attestation issuance, expiry, revocation and event history
-- [x] Issuer API key revocation
-- [x] Registered immutable JSON Schema versions and claim validation
-- [x] Wallet-owner consent grants scoped to linked wallet, issuer and schema version
-- [x] Consent listing and revocation
-- [x] Administrative issuer suspension and terminal revocation
-- [x] Admin trust-tier control with reason-audited history
-- [ ] Formal issuer trust policy and independent review
-- [ ] Dispute and correction workflow
-- [x] Durable idempotent chain-event store and checkpoint migrations
-- [x] Manual TON Center API v3 Testnet ingestion adapter (records unverified provider data)
-- [ ] Cryptographic block/transaction proof verification
-- [ ] Contract-specific event decoders and verified event policy
-- [ ] Automated continuous indexer operation and recovery
-
-## 0.4 — Reputation
-- [x] Versioned experimental reputation methodology v0.1.0
-- [x] Deterministic reputation calculation with trust-tier and recency weights
+- [x] Wallet-owner consent scoped to linked wallet, issuer and schema version
+- [x] Administrative issuer suspension, terminal revocation and reason-audited trust-tier changes
+- [x] Experimental Reputation methodology v0.1.0 with deterministic dimension projections
+- [x] Trust-tier and 180-day half-life recency weighting
 - [x] Evidence eligibility, expiry/revocation filtering and issuer/schema deduplication
 - [x] Explainable dimensions, coverage counts and public profile API
-- [ ] Calibration against reviewed datasets and independent methodology review
-- [ ] Dispute and correction workflow
-- [ ] Anti-abuse evaluation and false-positive review
+- [x] Dispute opening and administrative resolution with append-only dispute events
+- [ ] Integrate upheld disputes/corrections into reputation eligibility with explicit, tested semantics
+- [ ] Publish a formal issuer trust policy and independent review process
+- [ ] Calibrate methodology against reviewed datasets; evaluate collusion, Sybil resistance and false positives
+- [ ] Independent methodology review
 
-## 0.5 — Escrow Testnet research
-- [x] Escrow lifecycle specification and pure state-transition model with validation tests
-- [ ] Threat model and invariants
-- [ ] Tolk contract implementation
-- [ ] Unit, integration and adversarial tests
-- [ ] Independent security review before mainnet consideration
+## Stage 3 — TON Indexer and verifier
 
-## Later
+- [x] Durable idempotent chain-event store and checkpoint migrations
+- [x] TON Center API v3 Testnet ingestion adapter; imported provider records remain unverified
+- [x] Bounded one-shot sync and continuous worker with checkpoint resume and retry/backoff
+- [x] Separate Go transaction proof verifier using a Testnet trust anchor and secure proof policy
+- [x] Admin API integration that stores transaction-proof provenance
+- [ ] Contract-specific event decoders with code-hash allowlists and versioned schemas
+- [ ] Semantic verification policy: a proved transaction must not automatically become a verified DUR business event
+- [ ] End-to-end fixtures for supported contract versions, reorg/provider disagreement and recovery
+- [ ] Independent review of proof-verifier trust-anchor and operational assumptions
+
+## Stage 4 — Escrow Protocol
+
+- [x] Modular escrow lifecycle specification
+- [x] Pure state-transition model and validation tests
+- [x] Experimental Tolk contract prototype
+- [x] Initial Acton build and eight emulator tests (per current escrow specification)
+- [ ] Complete threat model and enforceable invariants
+- [ ] Property-based conservation and terminal-state tests
+- [ ] Adversarial tests for replay, malformed messages, timing boundaries, bounce and gas behavior
+- [ ] Resolve arbiter-unavailable / indefinite-dispute-lock risk
+- [ ] Explicit versioned contract event emission and decoder fixtures
+- [ ] Testnet deployment and end-to-end integration; no real funds
+- [ ] Independent contract security review before any Mainnet consideration
+
+## Stage 5 — Developer ecosystem
+
 - [x] TypeScript issuer SDK for attestation issue/read/revoke operations
-- [ ] Broader public profile/query SDK and integration examples
-- [ ] Developer documentation portal
-- [ ] Mainnet readiness assessment
-- [ ] Consider multi-chain adapters only after TON implementation is stable
+- [x] API documentation and OpenAPI specification
+- [ ] Broader public profile/query SDK
+- [ ] External integration example and developer onboarding guide
+- [ ] Public developer documentation portal
+- [ ] Operational dashboard and issuer review workflow
+
+## Stage 6 — Testnet validation and release readiness
+
+- [ ] Configure and verify HTTPS frontend/API deployment
+- [ ] Configure public TON Connect manifest and bot Mini App URL
+- [ ] Real-wallet Testnet authentication and wallet-link QA
+- [ ] End-to-end attestation → reputation profile flow
+- [ ] End-to-end indexer → transaction proof → semantic event verification flow
+- [ ] Escrow Testnet integration and adversarial QA
+- [ ] Threat-model review, dependency audit triage and security test report
+- [ ] Independent audit preparation and documented unresolved risks
+- [ ] Mainnet readiness assessment only after all preceding gates pass
+
+## Explicit exclusions for the current prototype
+
+- No Mainnet deployment or real-value escrow.
+- No claim that a wallet represents one unique human.
+- No reputation score as the sole basis for financial, access or eligibility decisions.
+- No treating provider-indexed transactions or transaction inclusion proofs as proof of subjective deal quality.
+- No production-readiness or audit claim based only on passing CI or emulator tests.

@@ -138,8 +138,25 @@ export class ChainEventStore {
       FROM chain_events
       WHERE network = ? AND (? IS NULL OR verification_status = ?)
       ORDER BY observed_at DESC, id DESC LIMIT ?
-    `).all(input.network, input.verificationStatus ?? null, input.verificationStatus ?? null, limit) as Array<Record<string, unknown> & { payloadJson: string }>;
-    return rows.map(({ payloadJson, ...row }) => ({ ...row, payload: JSON.parse(payloadJson) as Record<string, unknown> }));
+    `).all(input.network, input.verificationStatus ?? null, input.verificationStatus ?? null, limit) as Array<{
+      id: string;
+      network: string;
+      account: string;
+      lt: string;
+      txHash: string;
+      eventIndex: number;
+      eventType: string;
+      sourceContract: string;
+      sourceCodeHash: string | null;
+      decoderVersion: string;
+      verificationStatus: NormalizedChainEvent['verificationStatus'];
+      observedAt: number;
+      payloadJson: string;
+    }>;
+    return rows.map(({ payloadJson, ...row }) => ({
+      ...row,
+      payload: JSON.parse(payloadJson) as Record<string, unknown>,
+    }));
   }
 
   quarantine(id: string, reason: string, nowSeconds = Math.floor(Date.now() / 1000)) {

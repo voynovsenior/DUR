@@ -109,15 +109,22 @@ test('admin SDK keeps bearer authentication on administrative routes', async () 
     },
   });
 
+  await client.createIssuer({ displayName: 'Example Issuer', issuerType: 'marketplace' });
+  await client.setIssuerStatus('issuer/1', 'suspended');
+  await client.registerSchema('dur.delivery.completed', 1, { type: 'object' });
   await client.setIssuerTrustTier('issuer/1', 'verified', 'Reviewed and approved');
   await client.resolveDispute('dispute-1', 'rejected', 'Evidence did not substantiate the complaint');
   await client.verifyTransaction('event-1', 250);
 
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 6);
   assert.equal(new Headers(calls[0].init?.headers).get('authorization'), 'Bearer server-side-admin-token');
-  assert.equal(calls[0].url, 'https://api.example.com/v1/admin/issuers/issuer%2F1/trust-tier');
-  assert.equal(calls[1].url, 'https://api.example.com/v1/admin/disputes/dispute-1/resolve');
-  assert.equal(calls[2].url, 'https://api.example.com/v1/admin/indexer/events/event-1/verify-transaction');
+  assert.equal(calls[0].url, 'https://api.example.com/v1/admin/issuers');
+  assert.equal(calls[1].url, 'https://api.example.com/v1/admin/issuers/issuer%2F1/status');
+  assert.equal(calls[2].url, 'https://api.example.com/v1/admin/schemas');
+  assert.equal(calls[3].url, 'https://api.example.com/v1/admin/issuers/issuer%2F1/trust-tier');
+  assert.equal(calls[4].url, 'https://api.example.com/v1/admin/disputes/dispute-1/resolve');
+  assert.equal(calls[5].url, 'https://api.example.com/v1/admin/indexer/events/event-1/verify-transaction');
+  assert.throws(() => client.registerSchema('dur.delivery.completed', 0, { type: 'object' }), /invalid_schema_version/);
 });
 
 

@@ -36,6 +36,19 @@ fun onInternalMessage(in: InMessage) {
             assert (storage.state == EscrowState.Accepted) throw Errors.InvalidState;
             assert (in.senderAddress == storage.buyer) throw Errors.Unauthorized;
             val extra = ExtraFields.fromCell(storage.extra);
+            assert (storage.amount > 0) throw Errors.InvalidTerms;
+            assert (extra.dealId > 0) throw Errors.InvalidTerms;
+            assert (extra.termsHash > 0) throw Errors.InvalidTerms;
+            assert (
+                storage.buyer != storage.seller &&
+                storage.buyer != storage.arbiter &&
+                storage.seller != storage.arbiter
+            ) throw Errors.InvalidTerms;
+            assert (
+                extra.fundingDeadline > 0 &&
+                extra.completionDeadline >= extra.fundingDeadline &&
+                extra.disputeDeadline >= extra.completionDeadline
+            ) throw Errors.InvalidTerms;
             assert (blockchain.now() <= extra.fundingDeadline) throw Errors.DeadlinePassed;
             assert (in.valueCoins == storage.amount) throw Errors.InvalidFundingValue;
 

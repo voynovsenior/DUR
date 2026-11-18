@@ -1,6 +1,6 @@
-# DUR Issuer Trust Policy — Draft v0.1.0
+# DUR Issuer Trust Policy — Draft v0.2.0
 
-Status: **proposal for Testnet evaluation**. This document describes a review policy; it is not yet enforced as a complete governance workflow. The current implementation provides administrator-controlled trust-tier changes with reason-audited history. Production use requires an independent review process and stronger operational controls.
+Status: **proposal for Testnet evaluation; not yet formally adopted**. This document describes a review policy; it is not yet enforced as a complete governance workflow. The current implementation provides administrator-controlled trust-tier changes with reason-audited history. Production use requires an independent review process and stronger operational controls.
 
 ## 1. Purpose and scope
 
@@ -20,7 +20,7 @@ This policy applies to issuers that submit off-chain attestations to DUR. It doe
 
 ## 3. Tier definitions and provisional criteria
 
-The numerical weights below match Reputation methodology v0.1.0. They are experimental parameters, not a statement that an issuer is objectively trustworthy.
+The numerical weights below match Reputation methodology v0.2.0. They are experimental parameters, not a statement that an issuer is objectively trustworthy.
 
 | Tier | Weight | Meaning |
 |---|---:|---|
@@ -139,6 +139,6 @@ Before this policy is considered production-ready:
 - [ ] Conflict-of-interest declarations and reviewer recusal
 - [ ] Reassessment scheduling and issuer notification
 - [ ] Appeal and correction workflow
-- [ ] Tested integration of upheld disputes with reputation eligibility
+- [x] Tested integration of open/upheld/rejected dispute states with reputation eligibility
 - [ ] Public issuer status and review-date disclosure
 - [ ] Independent review of tier criteria and methodology weights

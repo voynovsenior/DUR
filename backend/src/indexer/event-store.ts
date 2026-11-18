@@ -82,7 +82,14 @@ export class ChainEventStore {
   ingest(batch: IndexerBatch, nowSeconds = Math.floor(Date.now() / 1000)) {
     validateCheckpoint(batch.checkpoint);
     if (!Array.isArray(batch.events) || batch.events.length > 10_000) throw new Error('invalid_event_batch');
-    for (const event of batch.events) {
+    const normalizedEvents = batch.events.map(event => ({
+      ...event,
+      account: event.account.toLowerCase(),
+      txHash: event.txHash.toLowerCase(),
+      sourceContract: event.sourceContract.toLowerCase(),
+      sourceCodeHash: event.sourceCodeHash?.toLowerCase(),
+    }));
+    for (const event of normalizedEvents) {
       validateEvent(event);
       if (event.network !== batch.checkpoint.network) throw new Error('event_network_mismatch');
     }
@@ -102,7 +109,7 @@ export class ChainEventStore {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       let inserted = 0;
-      for (const event of batch.events) {
+      for (const event of normalizedEvents) {
         const result = insert.run(
           stableEventId(event), event.network, event.account, event.lt, event.txHash,
           event.eventIndex, event.eventType, JSON.stringify(event.payload), event.sourceContract,
@@ -217,7 +224,7 @@ export class ChainEventStore {
       } | undefined;
       if (!event) return false;
       if (event.verificationStatus === 'quarantined') throw new Error('event_quarantined');
-      if (event.network !== 'ton-testnet' || proof.address !== event.account ||
+      if (event.network !== 'ton-testnet' || proof.address.toLowerCase() !== event.account.toLowerCase() ||
           proof.transactionLt !== event.lt ||
           proof.transactionHash.toLowerCase() !== event.txHash.toLowerCase()) {
         throw new Error('transaction_proof_event_mismatch');

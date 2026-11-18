@@ -61,6 +61,10 @@ export class AttestationRegistry {
       JOIN issuers i ON i.id = a.issuer_id
       WHERE a.subject_id = ? AND a.status = 'active' AND i.status = 'active'
         AND (a.expires_at IS NULL OR a.expires_at > ?)
+        AND NOT EXISTS (
+          SELECT 1 FROM attestation_disputes d
+          WHERE d.attestation_id = a.id AND d.status IN ('open', 'upheld')
+        )
       ORDER BY a.issued_at DESC, a.id DESC
     `).all(subjectId, nowSeconds) as Array<{
       id: string; issuerId: string; schemaId: string; issuedAt: number;

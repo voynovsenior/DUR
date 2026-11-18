@@ -50,7 +50,7 @@ The first UI package includes:
 | TON Connect | UI integration; manifest must be configured |
 | Reputation engine | Experimental v0.1 attestation projection; not calibrated for production |
 | Attestation registry | Issuer-authenticated issuance/revocation, immutable JSON Schema validation, wallet-owner consent, and audited admin trust-tier controls; draft issuer policy; owner-initiated disputes and admin resolution are implemented |
-| Developer SDK | TypeScript issuer, subject and admin clients; attestation lifecycle, reputation/dispute workflows, issuer/schema discovery and server-side integration example |
+| Developer SDK | TypeScript issuer, subject and admin clients; issuer lifecycle, schema registration/discovery, reputation/dispute workflows, admin dispute queue and server-side integration example |
 | Escrow contracts | Experimental Tolk prototype; not deployed or audited |
 | Backend API | Telegram authentication, TON Proof wallet linking, issuer/schema APIs, experimental reputation profiles, and read-only indexer endpoints; escrow API pending |
 | Chain indexer | Manual/continuous TON Testnet API v3 ingestion, durable checkpoints and separate transaction proof verification; semantic DUR event decoding pending |

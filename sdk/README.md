@@ -1,6 +1,6 @@
 # DUR Issuer SDK
 
-A small TypeScript client for issuer-authenticated DUR attestation operations.
+TypeScript clients for issuer attestation operations, wallet-owner reputation/dispute workflows, and server-side administration.
 
 ## Build
 
@@ -33,8 +33,10 @@ const attestation = await dur.createAttestation({
 });
 ```
 
-The SDK supports issue, read-own-attestation, revoke-own-attestation and revoke-current-key operations. It never sends issuer keys to browser code. Do not commit keys or place them in `VITE_` variables.
+`DurIssuerClient` supports issue, read-own-attestation, revoke-own-attestation and revoke-current-key operations. `DurSubjectClient` uses the authenticated session cookie to read the caller's linked-wallet reputation profile and open/list disputes. The profile API is owner-only until a separate public visibility-consent mechanism exists.
+
+`DurAdminClient` supports issuer trust-tier review, dispute resolution and Testnet transaction verification. It is server-side only: never instantiate it in browser code, never expose its token through `VITE_` variables, and never commit the token. The SDK does not store or request wallet seed phrases or private keys.
 
 ## Limitations
 
-The server validates claims against registered JSON Schema versions and requires wallet-owner consent before issuance. Issuer applications must obtain consent through the DUR user-facing flow; the SDK does not create consent grants or verify evidence references. An attestation proves that an authenticated issuer made a claim; it does not prove that claim true.
+The server validates claims against registered JSON Schema versions and requires wallet-owner consent before issuance. Issuer applications must obtain consent through the DUR user-facing flow; the SDK does not create consent grants or verify evidence references. Reputation values are experimental projections of eligible issuer claims, not calibrated trust scores. The admin transaction-verification method requires the separate Testnet-only Go verifier binary and records transaction-history verification only; application event semantics remain pending. An attestation proves that an authenticated issuer made a claim; it does not prove that claim true.

@@ -25,13 +25,13 @@
     "dotenv": "^16.4.7",
     "@ton/ton": "^16.3.0",
     "@ton/core": "^0.63.1",
-    "ajv": "^8.17.1"
+    "ajv": "^8.17.1",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
-    "tsx": "^4.19.2",
     "typescript": "~5.7.2",
     "vite": "^6.0.7",
     "@types/node": "^22.10.5",

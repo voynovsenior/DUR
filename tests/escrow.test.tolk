@@ -158,7 +158,6 @@ get fun `test seller can claim after deadline when completion was marked and no 
     expect(contract.currentState()).toEqual(EscrowState.Released);
 }
 
-
 get fun `test zero terms hash is rejected before funding`() {
     testing.setNow(1_000);
     val buyer = testing.treasury("invalid-buyer");

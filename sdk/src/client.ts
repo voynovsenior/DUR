@@ -151,6 +151,8 @@ export type ReputationDimensionResult = {
   value: number | null;
   evidenceCount: number;
   issuerCount: number;
+  issuerConcentrationIndex: number | null;
+  largestIssuerShare: number | null;
 };
 
 export type ReputationProfile = {

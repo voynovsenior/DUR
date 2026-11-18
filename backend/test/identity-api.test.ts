@@ -537,3 +537,71 @@ test('admin transaction verification endpoint fails closed when the proof binary
     }
   });
 });
+
+
+test('profile visibility consent grants and revokes anonymous reputation access', async () => {
+  await withServer(async (base, db) => {
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    assert.equal(login.status, 200);
+    const sessionCookie = login.headers.get('set-cookie')!.split(';')[0];
+    const loginBody = await login.json() as { user: { id: string } };
+    const walletAddress = `0:${'d'.repeat(64)}`;
+    const subjectId = `wallet:-3:${walletAddress}`;
+
+    db.prepare(`
+      INSERT INTO wallet_links (id, user_id, network, address, public_key, linked_at)
+      VALUES (?, ?, '-3', ?, ?, ?)
+    `).run('visibility-wallet-link', loginBody.user.id, walletAddress, 'e'.repeat(64), now);
+
+    const anonymousBefore = await fetch(`${base}/v1/profiles/${encodeURIComponent(subjectId)}/reputation`);
+    assert.equal(anonymousBefore.status, 404);
+
+    const unlinkedWallet = await fetch(`${base}/v1/auth/profile-visibility`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: sessionCookie },
+      body: JSON.stringify({ walletAddress: `0:${'f'.repeat(64)}` }),
+    });
+    assert.equal(unlinkedWallet.status, 403);
+
+    const grant = await fetch(`${base}/v1/auth/profile-visibility`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: sessionCookie },
+      body: JSON.stringify({ walletAddress }),
+    });
+    assert.equal(grant.status, 201);
+    const grantBody = await grant.json() as {
+      consent: { id: string; walletAddress: string; expiresAt: number };
+      disclosure: string;
+    };
+    assert.equal(grantBody.consent.walletAddress, walletAddress);
+    assert.ok(grantBody.consent.expiresAt > now);
+    assert.match(grantBody.disclosure, /publicly readable/);
+
+    const anonymousAfter = await fetch(`${base}/v1/profiles/${encodeURIComponent(subjectId)}/reputation`);
+    assert.equal(anonymousAfter.status, 200);
+    const publicProfile = await anonymousAfter.json() as { visibility: string; subjectId: string };
+    assert.equal(publicProfile.visibility, 'public');
+    assert.equal(publicProfile.subjectId, subjectId);
+
+    const listed = await fetch(`${base}/v1/auth/profile-visibility`, {
+      headers: { cookie: sessionCookie },
+    });
+    assert.equal(listed.status, 200);
+    const listedBody = await listed.json() as { consents: Array<{ id: string }> };
+    assert.ok(listedBody.consents.some(item => item.id === grantBody.consent.id));
+
+    const revoke = await fetch(`${base}/v1/auth/profile-visibility/${grantBody.consent.id}/revoke`, {
+      method: 'POST',
+      headers: { cookie: sessionCookie },
+    });
+    assert.equal(revoke.status, 200);
+
+    const anonymousAfterRevoke = await fetch(`${base}/v1/profiles/${encodeURIComponent(subjectId)}/reputation`);
+    assert.equal(anonymousAfterRevoke.status, 404);
+  });
+});
+

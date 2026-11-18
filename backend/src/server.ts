@@ -185,7 +185,7 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
-    if (allowedOrigin && origin !== allowedOrigin) {
+    if (allowedOrigin && origin && origin !== allowedOrigin) {
       send(res, 403, { error: 'origin_not_allowed', requestId });
       return;
     }

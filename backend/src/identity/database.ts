@@ -278,5 +278,32 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+
+  const transactionProofMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 9').get();
+  if (!transactionProofMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS chain_event_transaction_proofs (
+          id TEXT PRIMARY KEY,
+          chain_event_id TEXT NOT NULL REFERENCES chain_events(id),
+          network TEXT NOT NULL,
+          account TEXT NOT NULL,
+          lt TEXT NOT NULL,
+          tx_hash TEXT NOT NULL,
+          masterchain_seqno INTEGER NOT NULL,
+          masterchain_root_hash TEXT NOT NULL,
+          proof_policy TEXT NOT NULL CHECK(proof_policy = 'secure'),
+          verifier_version TEXT NOT NULL,
+          verified_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS chain_event_transaction_proofs_event_idx
+          ON chain_event_transaction_proofs(chain_event_id, verified_at DESC);
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (9, ?)')
+        .run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

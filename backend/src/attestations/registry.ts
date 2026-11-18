@@ -53,20 +53,24 @@ export class AttestationRegistry {
   }
 
   listReputationEvidence(subjectId: string, nowSeconds = Math.floor(Date.now() / 1000)) {
-    const rows = this.db.prepare(`
+    const rows = this.db.prepare(\`
       SELECT a.id, a.issuer_id AS issuerId, a.schema_id AS schemaId,
              a.issued_at AS issuedAt, a.expires_at AS expiresAt,
-             a.status, i.trust_tier AS trustTier, a.claim_json AS claimJson
+             CASE
+               WHEN a.status != 'active' THEN a.status
+               WHEN a.expires_at IS NOT NULL AND a.expires_at <= ? THEN 'expired'
+               WHEN EXISTS (
+                 SELECT 1 FROM attestation_disputes d
+                 WHERE d.attestation_id = a.id AND d.status IN ('open', 'upheld')
+               ) THEN 'disputed'
+               ELSE 'active'
+             END AS status,
+             i.trust_tier AS trustTier, a.claim_json AS claimJson
       FROM attestations a
       JOIN issuers i ON i.id = a.issuer_id
-      WHERE a.subject_id = ? AND a.status = 'active' AND i.status = 'active'
-        AND (a.expires_at IS NULL OR a.expires_at > ?)
-        AND NOT EXISTS (
-          SELECT 1 FROM attestation_disputes d
-          WHERE d.attestation_id = a.id AND d.status IN ('open', 'upheld')
-        )
+      WHERE a.subject_id = ? AND i.status = 'active'
       ORDER BY a.issued_at DESC, a.id DESC
-    `).all(subjectId, nowSeconds) as Array<{
+    \`).all(nowSeconds, subjectId) as Array<{
       id: string; issuerId: string; schemaId: string; issuedAt: number;
       expiresAt: number | null; status: string;
       trustTier: 'unverified' | 'verified' | 'trusted' | 'official'; claimJson: string;

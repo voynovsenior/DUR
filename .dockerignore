@@ -14,3 +14,21 @@ wrappers
 .env.*
 !.env.example
 npm-debug.log*
+
+# Prevent local credentials and wallet material from entering build contexts.
+*.pem
+*.key
+*.p12
+*.pfx
+*.seed
+*.mnemonic
+
+# Generated and local-only content.
+**/node_modules
+**/dist
+coverage
+.vite
+build
+*.log
+*.sqlite-*
+.DS_Store

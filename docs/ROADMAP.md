@@ -64,8 +64,8 @@ This roadmap tracks implementation, validation and release gates. A checked item
 
 - [x] TypeScript issuer SDK for attestation issue/read/revoke operations
 - [x] API documentation and OpenAPI specification
-- [ ] Broader public profile/query SDK
-- [ ] External integration example and developer onboarding guide
+- [x] Subject SDK for owner/public-consented reputation queries, disputes and profile-visibility consent management
+- [x] Server-side issuer integration example and SDK onboarding guide
 - [ ] Public developer documentation portal
 - [ ] Operational dashboard and issuer review workflow
 

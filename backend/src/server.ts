@@ -781,6 +781,11 @@ export function createApiServer(options: ApiOptions = {}) {
 
     const reputationProfileRoute = url.pathname.match(/^\/v1\/profiles\/(.+)\/reputation$/);
     if (reputationProfileRoute && req.method === 'GET') {
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
       let subjectId: string;
       try {
         subjectId = decodeURIComponent(reputationProfileRoute[1]);
@@ -790,6 +795,14 @@ export function createApiServer(options: ApiOptions = {}) {
       }
       if (!/^wallet:-3:0:[a-fA-F0-9]{64}$/.test(subjectId)) {
         send(res, 400, { error: 'invalid_subject_id', requestId });
+        return;
+      }
+      const walletAddress = subjectId.slice('wallet:-3:'.length).toLowerCase();
+      const walletLink = db.prepare(
+        "SELECT 1 FROM wallet_links WHERE user_id = ? AND network = '-3' AND address = ?",
+      ).get(user.id, walletAddress);
+      if (!walletLink) {
+        send(res, 403, { error: 'profile_access_denied', requestId });
         return;
       }
       const now = Math.floor(Date.now() / 1000);

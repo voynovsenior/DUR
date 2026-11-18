@@ -88,7 +88,7 @@ func TestParseEscrowLifecycleEvent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if event.SchemaVersion != 1 || event.DealID != 42 || event.EventSequence != 7 {
+	if event.SchemaVersion != 1 || event.DealID != "42" || event.EventSequence != 7 {
 		t.Fatalf("unexpected event identity: %#v", event)
 	}
 	if event.EventType != "mutual_dispute_resolved" || event.PreviousState != "disputed" || event.NewState != "released" {

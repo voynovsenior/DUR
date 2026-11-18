@@ -27,6 +27,12 @@ struct ExtraFields {
     disputeDeadline: uint32
 }
 
+enum ResolutionVote {
+    NoVote = 0
+    ReleaseToSeller = 1
+    RefundToBuyer = 2
+}
+
 struct Storage {
     buyer: address
     seller: address
@@ -56,12 +62,6 @@ struct (0x44555203) MarkComplete {}
 struct (0x44555204) ApproveRelease {}
 
 struct (0x44555205) OpenDispute {}
-
-enum ResolutionVote {
-    NoVote = 0
-    ReleaseToSeller = 1
-    RefundToBuyer = 2
-}
 
 struct (0x44555206) ResolveDispute {
     paySeller: bool

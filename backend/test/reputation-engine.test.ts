@@ -66,3 +66,22 @@ test("invalid or out-of-range dimension values are ignored", () => {
 test("future computation timestamps are rejected", () => {
   assert.throws(() => calculateReputation([], 0), /invalid_computation_time/);
 });
+
+test("recency half-life reduces the influence of older independent evidence", () => {
+  const result = calculateReputation([
+    item({ id: "older", issuerId: "issuer-old", issuedAt: now - 360 * 24 * 60 * 60, claim: claim(100) }),
+    item({ id: "newer", issuerId: "issuer-new", issuedAt: now, claim: claim(0) }),
+  ], now);
+  assert.ok(result.dimensions.reliability.value !== null);
+  assert.ok(Math.abs(result.dimensions.reliability.value - 33.33) < 0.02);
+  assert.equal(result.dimensions.reliability.evidenceCount, 2);
+});
+
+test("attestations without any supported reputation dimension are not counted", () => {
+  const result = calculateReputation([
+    item({ claim: { completed: true } }),
+  ], now);
+  assert.equal(result.eligibleEvidenceCount, 0);
+  assert.equal(result.eligibleIssuerCount, 0);
+  assert.equal(result.dimensions.reliability.value, null);
+});

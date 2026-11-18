@@ -568,6 +568,35 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    if (req.method === 'GET' && url.pathname === '/v1/admin/disputes') {
+      if (enforceLimit(res, requestId, clientKey(req, 'dispute-queue-admin'), 60)) return;
+      if (!adminToken) {
+        send(res, 503, { error: 'dispute_admin_not_configured', requestId });
+        return;
+      }
+      if (!secureTokenEquals(bearerToken(req), adminToken)) {
+        send(res, 401, { error: 'admin_unauthorized', requestId });
+        return;
+      }
+      const requestedStatus = url.searchParams.get('status');
+      const statuses = ['open', 'upheld', 'rejected'] as const;
+      const status = requestedStatus === null ? undefined
+        : statuses.includes(requestedStatus as typeof statuses[number])
+          ? requestedStatus as typeof statuses[number] : null;
+      if (status === null) {
+        send(res, 400, { error: 'invalid_dispute_status', requestId });
+        return;
+      }
+      const rawLimit = url.searchParams.get('limit');
+      const limit = rawLimit === null ? 50 : Number(rawLimit);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        send(res, 400, { error: 'invalid_limit', requestId });
+        return;
+      }
+      send(res, 200, { disputes: disputes.listAll({ status, limit }) });
+      return;
+    }
+
     const disputeResolveRoute = url.pathname.match(/^\/v1\/admin\/disputes\/([^/]+)\/resolve$/);
     if (disputeResolveRoute && req.method === 'POST') {
       if (enforceLimit(res, requestId, clientKey(req, 'dispute-resolve-admin'), 20)) return;

@@ -144,7 +144,7 @@ Run a bounded manual sync with `npm run indexer:sync`. Configure `TONCENTER_API_
 
 Admin Bearer token required. The API invokes the separately built Testnet-only proof verifier for the stored event's account, logical time and transaction hash. Optional body: `{ "maxScan": 500 }` (1–10,000). A successful response records the trusted masterchain sequence number/root hash and verifier version.
 
-This proves transaction membership in an account history anchored to a trusted Testnet masterchain state. It does **not** validate contract-specific event semantics or the truth of a business claim. The stored event's `verificationStatus` therefore remains `unverified`; proof metadata is exposed separately as `transactionProof`. Configure `DUR_PROOF_VERIFIER_BIN` to enable the endpoint. Without the binary, the endpoint returns 503.
+This proves transaction membership in an account history anchored to a trusted Testnet masterchain state. It does **not** validate contract-specific event semantics or the truth of a business claim. The database stores a verification receipt, not the raw BOC proof payload. The stored event's `verificationStatus` therefore remains `unverified`; proof metadata is exposed separately as `transactionProof`. Configure `DUR_PROOF_VERIFIER_BIN` to enable the endpoint. Without the binary, the endpoint returns 503.
 
 ## Reputation profiles
 

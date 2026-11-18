@@ -981,13 +981,109 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
-    const reputationProfileRoute = url.pathname.match(/^\/v1\/profiles\/(.+)\/reputation$/);
-    if (reputationProfileRoute && req.method === 'GET') {
+    if (req.method === 'GET' && url.pathname === '/v1/auth/profile-visibility') {
       const user = sessions.getUser(readCookie(req, COOKIE_NAME));
       if (!user) {
         send(res, 401, { error: 'unauthorized', requestId });
         return;
       }
+      const consents = db.prepare(\`
+        SELECT id, network, wallet_address AS walletAddress,
+               created_at AS createdAt, expires_at AS expiresAt, revoked_at AS revokedAt
+        FROM profile_visibility_consents
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT 100
+      \`).all(user.id);
+      send(res, 200, { consents });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/v1/auth/profile-visibility') {
+      if (enforceLimit(res, requestId, clientKey(req, 'profile-visibility-grant'), 5)) return;
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as { walletAddress?: unknown; expiresAt?: unknown };
+        if (!body || typeof body.walletAddress !== 'string' ||
+            !/^0:[a-fA-F0-9]{64}$/.test(body.walletAddress)) {
+          send(res, 400, { error: 'invalid_visibility_wallet', requestId });
+          return;
+        }
+        const now = Math.floor(Date.now() / 1000);
+        const expiresAt = body.expiresAt === undefined ? now + 90 * 24 * 60 * 60 : body.expiresAt;
+        if (!Number.isSafeInteger(expiresAt) || (expiresAt as number) <= now ||
+            (expiresAt as number) > now + 365 * 24 * 60 * 60) {
+          send(res, 400, { error: 'invalid_visibility_expiry', requestId });
+          return;
+        }
+        const walletAddress = body.walletAddress.toLowerCase();
+        const walletLink = db.prepare(
+          "SELECT 1 FROM wallet_links WHERE user_id = ? AND network = '-3' AND address = ?",
+        ).get(user.id, walletAddress);
+        if (!walletLink) {
+          send(res, 403, { error: 'visibility_wallet_not_linked', requestId });
+          return;
+        }
+        const id = randomUUID();
+        const transaction = db.transaction(() => {
+          db.prepare(\`
+            UPDATE profile_visibility_consents
+            SET revoked_at = ?
+            WHERE user_id = ? AND network = '-3' AND wallet_address = ?
+              AND revoked_at IS NULL
+          \`).run(now, user.id, walletAddress);
+          db.prepare(\`
+            INSERT INTO profile_visibility_consents
+              (id, user_id, network, wallet_address, created_at, expires_at)
+            VALUES (?, ?, '-3', ?, ?, ?)
+          \`).run(id, user.id, walletAddress, now, expiresAt as number);
+        });
+        transaction();
+        send(res, 201, {
+          consent: { id, network: '-3', walletAddress, createdAt: now, expiresAt, revokedAt: null },
+          disclosure: 'The wallet address and aggregated reputation become publicly readable until expiry or revocation. No Telegram identity or evidence references are published.',
+        });
+      } catch (error) {
+        send(res, 400, {
+          error: error instanceof Error ? error.message : 'visibility_consent_failed',
+          requestId,
+        });
+      }
+      return;
+    }
+
+    const visibilityRevokeRoute = url.pathname.match(/^\/v1\/auth\/profile-visibility\/([^/]+)\/revoke$/);
+    if (visibilityRevokeRoute && req.method === 'POST') {
+      if (enforceLimit(res, requestId, clientKey(req, 'profile-visibility-revoke'), 10)) return;
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      const now = Math.floor(Date.now() / 1000);
+      const result = db.prepare(\`
+        UPDATE profile_visibility_consents SET revoked_at = ?
+        WHERE id = ? AND user_id = ? AND revoked_at IS NULL
+      \`).run(now, visibilityRevokeRoute[1], user.id);
+      if (result.changes === 0) {
+        send(res, 404, { error: 'visibility_consent_not_found', requestId });
+        return;
+      }
+      send(res, 200, { revoked: true, revokedAt: now });
+      return;
+    }
+
+    const reputationProfileRoute = url.pathname.match(/^\/v1\/profiles\/(.+)\/reputation$/);
+    if (reputationProfileRoute && req.method === 'GET') {
       let subjectId: string;
       try {
         subjectId = decodeURIComponent(reputationProfileRoute[1]);
@@ -1000,17 +1096,27 @@ export function createApiServer(options: ApiOptions = {}) {
         return;
       }
       const walletAddress = subjectId.slice('wallet:-3:'.length).toLowerCase();
-      const walletLink = db.prepare(
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      const ownerLink = user ? db.prepare(
         "SELECT 1 FROM wallet_links WHERE user_id = ? AND network = '-3' AND address = ?",
-      ).get(user.id, walletAddress);
-      if (!walletLink) {
-        send(res, 403, { error: 'profile_access_denied', requestId });
+      ).get(user.id, walletAddress) : undefined;
+      const now = Math.floor(Date.now() / 1000);
+      const publicConsent = db.prepare(`
+        SELECT 1 FROM profile_visibility_consents
+        WHERE network = '-3' AND wallet_address = ? AND revoked_at IS NULL AND expires_at > ?
+        LIMIT 1
+      `).get(walletAddress, now);
+      if (!ownerLink && !publicConsent) {
+        send(res, 404, { error: 'profile_not_found', requestId });
         return;
       }
-      const now = Math.floor(Date.now() / 1000);
       const evidence = attestations.listReputationEvidence(subjectId, now);
       const projection = calculateReputation(evidence, now);
-      send(res, 200, { subjectId, reputation: projection });
+      send(res, 200, {
+        subjectId,
+        reputation: projection,
+        visibility: ownerLink ? 'owner' : 'public',
+      });
       return;
     }
 

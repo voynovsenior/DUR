@@ -987,14 +987,14 @@ export function createApiServer(options: ApiOptions = {}) {
         send(res, 401, { error: 'unauthorized', requestId });
         return;
       }
-      const consents = db.prepare(\`
+      const consents = db.prepare(`
         SELECT id, network, wallet_address AS walletAddress,
                created_at AS createdAt, expires_at AS expiresAt, revoked_at AS revokedAt
         FROM profile_visibility_consents
         WHERE user_id = ?
         ORDER BY created_at DESC
         LIMIT 100
-      \`).all(user.id);
+      `).all(user.id);
       send(res, 200, { consents });
       return;
     }
@@ -1035,17 +1035,17 @@ export function createApiServer(options: ApiOptions = {}) {
         }
         const id = randomUUID();
         const transaction = db.transaction(() => {
-          db.prepare(\`
+          db.prepare(`
             UPDATE profile_visibility_consents
             SET revoked_at = ?
             WHERE user_id = ? AND network = '-3' AND wallet_address = ?
               AND revoked_at IS NULL
-          \`).run(now, user.id, walletAddress);
-          db.prepare(\`
+          `).run(now, user.id, walletAddress);
+          db.prepare(`
             INSERT INTO profile_visibility_consents
               (id, user_id, network, wallet_address, created_at, expires_at)
             VALUES (?, ?, '-3', ?, ?, ?)
-          \`).run(id, user.id, walletAddress, now, expiresAt as number);
+          `).run(id, user.id, walletAddress, now, expiresAt as number);
         });
         transaction();
         send(res, 201, {
@@ -1070,10 +1070,10 @@ export function createApiServer(options: ApiOptions = {}) {
         return;
       }
       const now = Math.floor(Date.now() / 1000);
-      const result = db.prepare(\`
+      const result = db.prepare(`
         UPDATE profile_visibility_consents SET revoked_at = ?
         WHERE id = ? AND user_id = ? AND revoked_at IS NULL
-      \`).run(now, visibilityRevokeRoute[1], user.id);
+      `).run(now, visibilityRevokeRoute[1], user.id);
       if (result.changes === 0) {
         send(res, 404, { error: 'visibility_consent_not_found', requestId });
         return;

@@ -49,13 +49,16 @@ Assumptions:
 
 ### E-01 — Payout action failure or recipient delivery ambiguity
 
-**Observed in prototype:** payout transitions save a terminal state and call `sendPayout`; the helper creates a no-bounce internal message and uses regular send mode. `onBouncedMessage` is empty.
+**Observed in prototype:** payout transitions save a terminal state and call `sendPayout`; the helper creates a `BounceMode.NoBounce` internal message and uses `SEND_MODE_REGULAR`. `onBouncedMessage` is empty.
 
-**Risk:** the implementation has no explicit recovery or accounting path if payout delivery does not complete as expected, or if the recipient address cannot accept/use the funds as assumed. The exact behavior depends on TON message/action semantics and must be established with emulator tests.
+**Protocol facts checked against TON documentation:** a destination-side bounce requires a bounceable outgoing message and sufficient remaining TON for the bounce. A sender-side action-phase bounce additionally requires the `+16` / `SEND_MODE_BOUNCE_ON_ACTION_FAIL` flag. The current payout message explicitly disables destination bounce and regular mode does not set `+16`. These are separate failure paths and must not be conflated. See the official [internal-message and bounce rules](https://docs.ton.org/foundations/messages/internal) and [sending-mode reference](https://docs.ton.org/foundations/messages/modes).
+
+**Risk:** the contract has no destination-side recovery path if a recipient contract rejects a payout, because the payout is sent as non-bounceable. Action-phase send failures also have no explicit bounce-on-failure flag; their state rollback and retry behavior must be verified against the exact compiled contract and emulator. The implementation has no explicit accounting/recovery path for ambiguous payout outcomes.
 
 **Required before Testnet value testing:**
-- define whether payouts are bounceable and why;
-- model action-phase send failures and bounced messages;
+- define whether payouts are bounceable and why, separately from sender action-failure handling;
+- model destination compute failures, sender action-phase send failures and bounced messages independently;
+- verify whether each failed action preserves or reverts the terminal state under the compiled Tolk/TVM behavior;
 - prove that failed payout cannot leave a terminal state with funds stranded;
 - test recipient contract rejection, inactive/uninitialized recipient, insufficient forwarding reserve and duplicate payout attempts;
 - define a safe retry/recovery state that cannot permit double payment;
@@ -190,4 +193,10 @@ Assumptions:
 
 ## 8. Current conclusion
 
-The current contract is an experimental state-transition prototype, not a safe escrow product. The most important unresolved engineering issue is payout failure/recovery, followed by arbiter unavailability and accounting/fee assumptions. Do not deploy it for real funds or describe it as audited.
+The current contract is an experimental state-transition prototype, not a safe escrow product. The payout path currently disables destination-side bounce, and its recovery semantics remain unresolved. The next highest risks are arbiter unavailability and accounting/fee assumptions. Do not deploy it for real funds or describe it as audited.
+
+## 9. Protocol references
+
+- [TON internal messages and bounce conditions](https://docs.ton.org/foundations/messages/internal)
+- [TON sending modes and action-failure flags](https://docs.ton.org/foundations/messages/modes)
+- [Tolk message handling and `onBouncedMessage`](https://docs.ton.org/tolk/features/message-handling)

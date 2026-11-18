@@ -157,3 +157,70 @@ get fun `test seller can claim after deadline when completion was marked and no 
     });
     expect(contract.currentState()).toEqual(EscrowState.Released);
 }
+
+
+get fun `test zero terms hash is rejected before funding`() {
+    testing.setNow(1_000);
+    val buyer = testing.treasury("invalid-buyer");
+    val seller = testing.treasury("invalid-seller");
+    val arbiter = testing.treasury("invalid-arbiter");
+    val extra = ExtraFields {
+        dealId: 1,
+        termsHash: 0,
+        fundingDeadline: 2_000,
+        completionDeadline: 3_000,
+        disputeDeadline: 4_000,
+    };
+    val contract = Escrow.fromStorage({
+        buyer: buyer.address,
+        seller: seller.address,
+        arbiter: arbiter.address,
+        amount: grams("1"),
+        state: EscrowState.Created,
+        completionMarked: false,
+        extra: extra.toCell(),
+    });
+    contract.deploy(buyer.address, { value: grams("0.5") });
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+
+    val fund = contract.sendFund(buyer.address, { value: grams("1") });
+    expect(fund).toHaveFailedTx({
+        from: buyer.address,
+        to: contract.address,
+        exitCode: Errors.InvalidTerms,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Accepted);
+}
+
+get fun `test invalid deadline ordering is rejected before funding`() {
+    testing.setNow(1_000);
+    val buyer = testing.treasury("deadline-buyer");
+    val seller = testing.treasury("deadline-seller");
+    val arbiter = testing.treasury("deadline-arbiter");
+    val extra = ExtraFields {
+        dealId: 1,
+        termsHash: 0x1234,
+        fundingDeadline: 3_000,
+        completionDeadline: 2_000,
+        disputeDeadline: 4_000,
+    };
+    val contract = Escrow.fromStorage({
+        buyer: buyer.address,
+        seller: seller.address,
+        arbiter: arbiter.address,
+        amount: grams("1"),
+        state: EscrowState.Created,
+        completionMarked: false,
+        extra: extra.toCell(),
+    });
+    contract.deploy(buyer.address, { value: grams("0.5") });
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+
+    val fund = contract.sendFund(buyer.address, { value: grams("1") });
+    expect(fund).toHaveFailedTx({
+        from: buyer.address,
+        to: contract.address,
+        exitCode: Errors.InvalidTerms,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Accepted);
+}

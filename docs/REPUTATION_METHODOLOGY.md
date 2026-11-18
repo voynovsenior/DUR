@@ -1,71 +1,71 @@
-# DUR Reputation Methodology — Design Draft
+# DUR Reputation Methodology
 
-Status: design only. No production reputation calculation or public score endpoint is implemented.
+Status: **experimental implementation v0.1.0**. This is a deterministic attestation projection for development and Testnet evaluation, not a calibrated universal trust score.
 
-## 1. Output model
+## 1. Dimensions
 
-DUR should publish an explainable evidence profile, not an unexplained universal trust score. A profile is a versioned projection containing:
-- per-dimension result;
-- confidence and evidence coverage;
-- eligible evidence count;
-- freshness window;
-- methodology version;
-- references to the evidence used.
+The current implementation reports four independent dimensions:
+- `reliability`
+- `delivery`
+- `communication`
+- `disputeResolution`
 
-A numeric aggregate must not be exposed until the methodology has been calibrated against representative, reviewed data.
+An issuer attestation contributes values only when its claim contains a `reputation.dimensions` object with a numeric value from 0 to 100 for the relevant dimension. Missing or invalid dimensions are omitted rather than treated as zero.
 
-## 2. Evidence classes
+## 2. Eligible evidence
 
-### Canonical on-chain facts
-Examples include transaction inclusion, message relationships and verified contract events. An indexer must verify source, network, transaction identity, block/masterchain context and event decoding. Client-submitted hashes are not evidence.
+An attestation is eligible only when:
+- its status is `active`;
+- it has not expired;
+- its issuer is active;
+- its issuer trust tier is `verified`, `trusted`, or `official`;
+- the claim contains a valid value for the requested dimension.
 
-### Issuer attestations
-An attestation proves that an identified issuer made a structured claim. It does not prove the claim is true. Eligibility depends on issuer status, policy version, evidence references, expiry and revocation state.
+New issuers start as `unverified` and contribute nothing. Raw TON Center indexer events are excluded because the current provider adapter does not establish cryptographic proof of event inclusion or canonical event semantics.
 
-### Derived signals
-Concentration, repetition and graph patterns are risk indicators. They are not direct facts and must not independently establish fraud.
+## 3. Weights and aggregation
 
-## 3. Candidate dimensions
+Issuer tier weights:
 
-- **Fulfilment consistency:** completed outcomes relative to eligible, resolved agreements.
-- **Evidence quality:** provenance, verifiability and completeness of supporting evidence.
-- **Counterparty breadth:** distribution across independent counterparties, with diminishing marginal contribution from repeated pairs.
-- **Recency and consistency:** temporal distribution of eligible outcomes, using a documented versioned decay function.
-- **Issuer assurance:** reliability policy of the issuer, kept separate from the truth value of each claim.
+| Tier | Weight |
+|---|---:|
+| unverified | 0 |
+| verified | 0.50 |
+| trusted | 0.75 |
+| official | 1.00 |
 
-These dimensions are candidates, not currently calculated values. Exact weighting and calibration require a reviewed dataset and must be versioned.
+Recency weight uses a 180-day half-life:
 
-## 4. Eligibility and exclusions
+`recencyWeight = 0.5 ^ (ageSeconds / (180 * 24 * 60 * 60))`
 
-- Reject unverified, non-canonical or duplicate chain events.
-- Exclude revoked attestations and attestations past expiry.
-- Keep disputed outcomes separate from resolved positive outcomes.
-- Do not infer service quality from a transfer amount or transaction count.
-- Do not let a single issuer or repeated counterparty dominate a profile.
-- Keep wallet identity network-qualified; a wallet is not a unique human identity.
+For each issuer/schema pair, only the latest eligible attestation is retained. This prevents repeated updates by one issuer under one schema from multiplying its evidence count.
 
-## 5. Anti-abuse and correction
+Each dimension is a weighted arithmetic mean:
 
-Use idempotent event identities, issuer authentication, replay protection, counterparty concentration analysis and graph-based anomaly review. An anomaly is a review signal, not an automatic fraud verdict. Preserve dispute and correction history as append-only events.
+`dimension = sum(value * tierWeight * recencyWeight) / sum(tierWeight * recencyWeight)`
 
-## 6. Required invariants
+Values are clamped to the 0–100 range and rounded to two decimal places. If no eligible evidence exists for a dimension, its value is `null`.
 
-1. Every output must reference a methodology version.
-2. Every included input must have a verifiable source and stable identity.
-3. Re-ingesting an event must not increase its contribution.
-4. Revoked or expired evidence must not contribute to a current projection.
-5. Disputed evidence must not silently count as resolved positive evidence.
-6. A client must never be able to submit its own reputation contribution directly.
-7. Every dimension must expose coverage and confidence, not just a value.
+## 4. Issuer review
 
-## 7. Implementation gates
+Only an administrator can change issuer trust tiers through the protected API. Every tier change records the old tier, new tier, actor label, reason and timestamp. The endpoint does not itself establish that an issuer deserves a tier: a formal review policy, evidence checklist, independent reviewer process and periodic reassessment are still required.
 
-Before publishing a profile:
-- implement the canonical TON indexer and verifier;
-- define evidence event schemas and idempotency keys;
-- complete the issuer policy and subject-consent model;
-- write deterministic calculation tests and adversarial cases;
-- document methodology and version migration;
-- evaluate false positives and bias in anomaly review.
+## 5. Interpretation and limitations
 
-Until those gates pass, the UI must continue to show a preview state and must not fabricate scores.
+- The projection summarizes issuer claims; it does not prove that the underlying claims are true.
+- Tier assignment is an administrative trust judgment, not a cryptographic guarantee.
+- The current implementation does not calculate counterparty independence, deal completion ratios, graph-based Sybil risk, or verified on-chain outcomes.
+- It does not include unverified indexer events.
+- A wallet is not proof of a unique human identity.
+- No score should be used as the sole basis for financial, access, moderation or eligibility decisions.
+- A dispute/correction workflow and calibration against reviewed datasets are still outstanding.
+
+## 6. API
+
+`GET /v1/profiles/{subjectId}/reputation` returns the projection and its methodology version, evidence counts and limitations.
+
+`POST /v1/admin/issuers/{id}/trust-tier` requires the admin Bearer token and a JSON body with `trustTier` and a non-empty `reason`.
+
+## 7. Versioning
+
+Any change to eligible evidence, dimensions, tier weights, decay, deduplication or aggregation must increment the methodology version and include deterministic regression tests. Existing outputs must remain attributable to the methodology version that produced them.

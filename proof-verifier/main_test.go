@@ -1,8 +1,13 @@
 package main
 
 import (
+	"encoding/hex"
 	"strings"
 	"testing"
+
+	"github.com/xssnick/tonutils-go/address"
+	"github.com/xssnick/tonutils-go/tlb"
+	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
 func TestParseRequestAcceptsTestnetRawAddress(t *testing.T) {
@@ -47,3 +52,87 @@ func TestParseRequestRejectsTrailingJSON(t *testing.T) {
 		t.Fatalf("expected trailing JSON rejection, got %v", err)
 	}
 }
+
+
+func TestParseEscrowLifecycleEvent(t *testing.T) {
+	actor, err := address.ParseRawAddr("0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	counterparty, err := address.ParseRawAddr("0:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	if err != nil {
+		t.Fatal(err)
+	}
+	termsHash, err := hex.DecodeString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body := escrowLifecycleEventBody{
+		SchemaVersion: 1,
+		DealID:        42,
+		EventSequence: 7,
+		EventType:     6,
+		PreviousState: 3,
+		NewState:      4,
+		Actor:         actor,
+		Counterparty:  counterparty,
+		TermsHash:     termsHash,
+		Decision:      1,
+	}
+	eventCell, err := tlb.ToCell(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := parseEscrowLifecycleEvent(eventCell)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.SchemaVersion != 1 || event.DealID != 42 || event.EventSequence != 7 {
+		t.Fatalf("unexpected event identity: %#v", event)
+	}
+	if event.EventType != "mutual_dispute_resolved" || event.PreviousState != "disputed" || event.NewState != "released" {
+		t.Fatalf("unexpected event transition: %#v", event)
+	}
+	if event.Actor != actor.StringRaw() || event.Counterparty != counterparty.StringRaw() {
+		t.Fatalf("unexpected event participants: %#v", event)
+	}
+	if event.TermsHash != hex.EncodeToString(termsHash) || event.Decision != "release_to_seller" {
+		t.Fatalf("unexpected event terms/decision: %#v", event)
+	}
+}
+
+func TestParseEscrowLifecycleEventRejectsUnknownVersion(t *testing.T) {
+	actor, _ := address.ParseRawAddr("0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	counterparty, _ := address.ParseRawAddr("0:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	termsHash := make([]byte, 32)
+	body := escrowLifecycleEventBody{
+		SchemaVersion: 2,
+		DealID:        1,
+		EventSequence: 1,
+		EventType:     1,
+		PreviousState: 0,
+		NewState:      1,
+		Actor:         actor,
+		Counterparty:  counterparty,
+		TermsHash:     termsHash,
+		Decision:      0,
+	}
+	eventCell, err := tlb.ToCell(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = parseEscrowLifecycleEvent(eventCell)
+	if err == nil || err.Error() != "unsupported_escrow_event_schema_version:2" {
+		t.Fatalf("expected unsupported version error, got %v", err)
+	}
+}
+
+func TestParseEscrowLifecycleEventRejectsMalformedBody(t *testing.T) {
+	body := cell.BeginCell().MustStoreUInt(0x445552E0, 32).EndCell()
+	_, err := parseEscrowLifecycleEvent(body)
+	if err == nil {
+		t.Fatal("expected malformed event body rejection")
+	}
+}
+

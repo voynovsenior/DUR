@@ -12,6 +12,7 @@ import { AttestationRegistry } from './attestations/registry';
 import type { JsonValue } from './attestations/model';
 import { ChainEventStore } from './indexer/event-store';
 import { AttestationSchemaRegistry } from './attestations/schema-registry';
+import { calculateReputation } from './reputation/engine';
 
 const port = Number(process.env.API_PORT ?? 8787);
 const COOKIE_NAME = 'dur_session';
@@ -425,6 +426,47 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    const issuerTrustTierRoute = url.pathname.match(/^\/v1\/admin\/issuers\/([^/]+)\/trust-tier$/);
+    if (issuerTrustTierRoute && req.method === 'POST') {
+      if (enforceLimit(res, requestId, clientKey(req, 'issuer-trust-tier-admin'), 20)) return;
+      if (!adminToken) {
+        send(res, 503, { error: 'issuer_admin_not_configured', requestId });
+        return;
+      }
+      if (!secureTokenEquals(bearerToken(req), adminToken)) {
+        send(res, 401, { error: 'admin_unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as { trustTier?: unknown; reason?: unknown };
+        const tiers = ['unverified', 'verified', 'trusted', 'official'];
+        if (!body || typeof body.trustTier !== 'string' || !tiers.includes(body.trustTier) ||
+            typeof body.reason !== 'string') {
+          send(res, 400, { error: 'invalid_issuer_trust_tier', requestId });
+          return;
+        }
+        const updated = attestations.setIssuerTrustTier(
+          issuerTrustTierRoute[1],
+          body.trustTier as 'unverified' | 'verified' | 'trusted' | 'official',
+          body.reason,
+        );
+        if (!updated) {
+          send(res, 404, { error: 'issuer_not_found', requestId });
+          return;
+        }
+        send(res, 200, { issuerId: issuerTrustTierRoute[1], trustTier: body.trustTier });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'issuer_trust_tier_update_failed';
+        send(res, 400, { error: code, requestId });
+      }
+      return;
+    }
+
     const issuerStatusRoute = url.pathname.match(/^\/v1\/admin\/issuers\/([^/]+)\/status$/);
     if (issuerStatusRoute && req.method === 'POST') {
       if (enforceLimit(res, requestId, clientKey(req, 'issuer-status-admin'), 20)) return;
@@ -737,12 +779,28 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    const reputationProfileRoute = url.pathname.match(/^\/v1\/profiles\/(.+)\/reputation$/);
+    if (reputationProfileRoute && req.method === 'GET') {
+      let subjectId: string;
+      try {
+        subjectId = decodeURIComponent(reputationProfileRoute[1]);
+      } catch {
+        send(res, 400, { error: 'invalid_subject_id', requestId });
+        return;
+      }
+      if (!/^wallet:-3:0:[a-fA-F0-9]{64}$/.test(subjectId)) {
+        send(res, 400, { error: 'invalid_subject_id', requestId });
+        return;
+      }
+      const now = Math.floor(Date.now() / 1000);
+      const evidence = attestations.listReputationEvidence(subjectId, now);
+      const projection = calculateReputation(evidence, now);
+      send(res, 200, { subjectId, reputation: projection });
+      return;
+    }
+
     if (url.pathname.startsWith('/v1/profiles/')) {
-      send(res, 501, {
-        error: 'not_implemented',
-        message: 'Profile queries are unavailable until the reputation data layer is implemented.',
-        requestId,
-      });
+      send(res, 404, { error: 'profile_not_found', requestId });
       return;
     }
 

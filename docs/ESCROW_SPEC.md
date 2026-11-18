@@ -1,6 +1,6 @@
 # DUR Modular Escrow — Testnet Specification Draft
 
-Status: experimental Tolk contract prototype v0.2.0. Acton compilation, formatting/linting and 21 emulator tests pass (including deadline-boundary, terminal-replay and bilateral dispute-vote cases). The contract is not deployed, has not undergone an independent audit, and is not approved for real funds. Any deployment consideration is Testnet-only.
+Status: experimental Tolk contract prototype v0.2.0. Acton compilation, formatting/linting and 24 emulator tests pass (including deadline-boundary, terminal-replay and bilateral dispute-vote cases). The contract is not deployed, has not undergone an independent audit, and is not approved for real funds. Any deployment consideration is Testnet-only.
 
 See [Escrow Threat Model](ESCROW_THREAT_MODEL.md) for the current threat register, payout/bounce risk, arbiter-availability risk, required invariants and release gates. The threat model is a maintainer draft, not an audit.
 
@@ -44,7 +44,7 @@ The first Tolk prototype fixes the transitions and deadlines in contract storage
 3. Funds cannot be released or refunded more than once.
 4. A deal cannot become Funded without verified value in contract state.
 5. A timeout cannot bypass an active dispute.
-6. Every transition must be replay-resistant. Explicit event emission and versioned event decoding are still pending.
+6. Every successful lifecycle transition emits a versioned external event with a monotonic per-deal sequence. The proof verifier can extract v1 events from proof-verified transactions; source-contract allowlisting and semantic verification remain pending.
 7. Amounts, asset identifiers and recipient addresses must be validated on-chain.
 8. Contract accounting must preserve all deposited value except explicitly specified network fees.
 9. Reputation integration must not be able to move funds.
@@ -58,4 +58,4 @@ The first Tolk prototype fixes the transitions and deadlines in contract storage
 - sandbox/Testnet integration tests;
 - independent contract review and audit before any mainnet consideration.
 
-The UI remains a design preview and is not connected to this contract. The current 0.2.0 prototype adds bilateral dispute-resolution votes while retaining arbiter resolution. Conflicting votes do not move funds and leave the deal disputed. This does not remove the indefinite-lock risk if the parties disagree and the arbiter is unavailable. An open dispute has no resolution timeout: if the arbiter becomes unavailable, the escrow can remain locked indefinitely. Explicit event emission, property-based conservation tests, deployment-reserve calibration, payout gas/bounce behavior, and independent accounting/security review remain outstanding. No real funds or Mainnet use are permitted.
+The UI remains a design preview and is not connected to this contract. The current 0.2.0 prototype adds bilateral dispute-resolution votes and versioned external lifecycle events while retaining arbiter resolution. Conflicting votes do not move funds and leave the deal disputed. This does not remove the indefinite-lock risk if the parties disagree and the arbiter is unavailable. An open dispute has no resolution timeout: if the arbiter becomes unavailable, the escrow can remain locked indefinitely. Property-based conservation tests, deployment-reserve calibration, payout gas/bounce behavior, source-contract identity and semantic event verification, and independent accounting/security review remain outstanding. No real funds or Mainnet use are permitted.

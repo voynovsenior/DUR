@@ -1,28 +1,38 @@
 # Architecture
 
-## Scope
-DUR is planned as a modular application and protocol layer for TON. This repository currently contains a frontend prototype, a minimal Telegram bot, a backend API foundation with Telegram init-data verification and persistent SQLite sessions, and project documentation. The limited TON wallet proof verifier and wallet-link routes are implemented in code; real-wallet Testnet QA and deployment remain pending. The issuer-authenticated attestation registry, immutable JSON Schema validation and wallet-owner consent lifecycle are implemented as a foundation. A manual TON Center Testnet ingestion adapter and durable event store are available, but imported records remain unverified. Canonical proof verification, reputation engine and escrow contracts remain unimplemented.
+## Scope and maturity
+
+DUR is a modular trust infrastructure prototype for the TON ecosystem. The repository contains a Telegram Mini App and bot, a backend API, persistent identity and issuer/attestation services, an experimental reputation projection, a Testnet indexer with a separate transaction-proof verifier, a TypeScript issuer SDK, and an experimental Tolk escrow contract.
+
+The project is **prototype / early development**, not production-ready. Wallet linking supports only explicitly implemented wallet versions and still needs real-wallet Testnet QA. The indexer imports provider data as unverified; the proof verifier can establish transaction inclusion/account-history facts, but contract-specific event decoding and semantic policy are still pending. The escrow contract is not deployed or independently audited. No real funds or Mainnet use are permitted.
 
 ## Components
+
 1. **Telegram Mini App** — presentation and user interaction; treat it as an untrusted client.
 2. **Telegram bot** — onboarding and notifications; credentials remain server-side.
-3. **Identity Layer** — verifies Telegram init data, manages persistent sessions, and links supported TON wallets after server-side `ton_proof` verification.
-4. **Application API** — exposes health/status, Telegram authentication, TON wallet linking, issuer/schema/consent APIs, attestation lifecycle endpoints and read-only indexer endpoints; reputation profiles and escrow operations remain unavailable.
-5. **Reputation Engine** — planned deterministic computation over eligible evidence.
-6. **Attestation Registry** — issuer registration, API-key authentication, claim issuance, expiry, revocation and event history are implemented as a foundation; immutable JSON Schema validation and wallet-owner consent are implemented; issuer trust policy and disputes remain planned.
-7. **Escrow module** — planned independent contract and application module.
-8. **Indexer / verifier** — manual TON Center Testnet ingestion with durable checkpoints is implemented; cryptographic proof verification and contract-specific decoding remain planned.
-9. **TON contracts** — planned on-chain state and events; Testnet first.
+3. **Identity Layer** — verifies signed Telegram initData, manages persistent SQLite sessions, and links supported TON wallets after server-side ton_proof verification.
+4. **Application API** — exposes health/status, Telegram authentication, TON wallet linking, issuer/schema/consent APIs, attestation lifecycle and dispute endpoints, reputation profiles, and read-only indexer endpoints. Escrow API integration remains pending.
+5. **Reputation Engine** — deterministic, versioned experimental projection over eligible attestations. It reports separate dimensions, evidence coverage and limitations; it is not a calibrated universal trust score.
+6. **Attestation Registry** — issuer registration and API-key authentication, immutable JSON Schema versions, claim validation, issuance/expiry/revocation, wallet-owner consent, issuer trust-tier administration and dispute lifecycle.
+7. **Escrow module** — independent experimental Tolk contract and lifecycle model. Reputation may consume verified completion evidence, but it must never control fund release or refund.
+8. **Indexer / verifier** — TON Center Testnet ingestion, durable checkpoints and a continuous worker; a separate Go verifier checks transaction inclusion against a Testnet trust anchor. Contract-specific decoding and semantic event verification remain pending.
+9. **Developer interfaces** — TypeScript issuer SDK, API documentation and OpenAPI contract. Broader profile/query SDK and integration examples remain pending.
 
 ## Trust boundaries
+
 - Browser and Telegram WebView inputs are untrusted.
-- Telegram `initDataUnsafe` is display context only; backend verification uses signed raw `initData`.
-- Telegram init-data verification, login, and persistent session routes are implemented; they are not an independently audited production identity service.
-- A wallet address is not proof of ownership. The backend must verify TON Connect `ton_proof` before linking a wallet.
-- An indexer may derive facts from canonical chain data but must not invent events.
-- Off-chain claims require issuer policies and evidence. A transaction cannot prove subjective work quality.
+- Telegram initDataUnsafe is display context only; backend verification uses signed raw initData.
+- Telegram login and persistent sessions are implemented, but are not an independently audited production identity service.
+- A wallet address is not proof of ownership. The backend verifies TON Connect ton_proof before linking a supported wallet.
+- A transaction inclusion proof establishes only the chain facts covered by the proof. It does not prove that a decoded application claim is true or that a participant performed quality work.
+- TON Center API responses are provider data, not cryptographic proofs. Imported events remain unverified.
+- Contract event decoders must be versioned and restricted to reviewed code hashes; unknown versions must be quarantined rather than guessed.
+- Issuer trust tiers are administrative judgments. They require a documented policy and review process before production use.
+- Reputation summarizes eligible issuer claims; it does not establish unique-human identity or guarantee truth.
+- Escrow must remain independently usable. Reputation cannot move funds, and no real-value use is permitted before independent security review.
 
 ## Target data flow
+
 ~~~mermaid
 flowchart TD
  U[Telegram user] --> UI[Mini App]
@@ -36,13 +46,16 @@ flowchart TD
  IDX --> TON[TON Testnet]
  REP --> DB[(Application database)]
  ATT --> DB
- ESC[Escrow module] <--> TON
- SDK[External apps / SDK] --> API
+ ESC[Independent escrow contract] <--> TON
+ SDK[External apps / issuer SDK] --> API
 ~~~
 
 ## Deployment phases
-- Phase 0: local prototype and static hosting.
-- Phase 1: authenticated API, persistent storage and testnet wallet proof.
-- Phase 2: attestation lifecycle, immutable claim schemas and wallet-owner consent; initial provider-backed Testnet ingestion.
-- Phase 3: transparent reputation methodology and SDK.
-- Phase 4: escrow contracts, formal testing and independent security review before mainnet consideration.
+
+- **Phase 0 — Local prototype:** frontend, bot and API development.
+- **Phase 1 — Identity foundation:** authenticated API, persistent storage and supported Testnet wallet proof.
+- **Phase 2 — Evidence layer:** issuer registry, immutable claim schemas, consent, attestations and dispute lifecycle.
+- **Phase 3 — Trust projection:** explainable reputation methodology and issuer SDK.
+- **Phase 4 — Chain verification:** Testnet ingestion and transaction proof verification; semantic contract-event decoding remains a release gate.
+- **Phase 5 — Escrow research:** Tolk prototype, adversarial testing and independent review.
+- **Phase 6 — Testnet validation:** HTTPS deployment, real-wallet QA, end-to-end integration and security review. Mainnet is a separate future decision, not an automatic next step.

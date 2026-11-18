@@ -43,3 +43,7 @@ The optional Go proof verifier uses a Testnet trust anchor and secure proof-chec
 ## Dependency audit status
 
 The CI pipeline fails if the production dependency tree contains high-severity npm advisories. The current production audit reports zero vulnerabilities. The full development-tooling audit still reports the upstream `picomatch` ReDoS advisory (GHSA-fc5q-39xc-vjpf) through Vite's build dependency tree; the registry version available in this environment remains 4.0.7, which is within the advisory's affected range. This is a development/build-time dependency, not shipped in the Mini App runtime. Do not expose the Vite development server to untrusted networks. Re-run the full audit and remove this note once an upstream fixed release is available and adopted.
+
+## Reverse-proxy rate-limit identity
+
+Set `TRUSTED_PROXY_IPS` only to exact, controlled proxy IP addresses. The API ignores `X-Forwarded-For` from all other peers. The included Caddy template overwrites the forwarded header with the connected client address and runs at the fixed internal address `172.30.0.2`; the API allowlists only that address.

@@ -85,3 +85,22 @@ test("attestations without any supported reputation dimension are not counted", 
   assert.equal(result.eligibleIssuerCount, 0);
   assert.equal(result.dimensions.reliability.value, null);
 });
+
+
+test("newer revoked evidence suppresses an older active attestation from the same issuer and schema", () => {
+  const result = calculateReputation([
+    item({ id: "older-active", issuedAt: now - 100, claim: claim(95) }),
+    item({ id: "newer-revoked", issuedAt: now - 50, status: "revoked", claim: claim(10) }),
+  ], now);
+  assert.equal(result.dimensions.reliability.value, null);
+  assert.equal(result.eligibleEvidenceCount, 0);
+});
+
+test("newer expired evidence does not resurrect an older active attestation", () => {
+  const result = calculateReputation([
+    item({ id: "older-active", issuedAt: now - 100, claim: claim(95) }),
+    item({ id: "newer-expired", issuedAt: now - 50, expiresAt: now - 1, claim: claim(10) }),
+  ], now);
+  assert.equal(result.dimensions.reliability.value, null);
+  assert.equal(result.eligibleEvidenceCount, 0);
+});

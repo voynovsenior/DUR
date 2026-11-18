@@ -83,7 +83,7 @@ export async function verifyTonTestnetTransaction(
         return;
       }
       if (result.proofPolicy !== "secure" || result.network !== "testnet" ||
-          result.address !== input.address || result.transactionLt !== input.lt ||
+          result.address.toLowerCase() !== input.address.toLowerCase() || result.transactionLt !== input.lt ||
           result.transactionHash.toLowerCase() !== input.txHash.toLowerCase()) {
         finish(new Error("proof_verifier_result_mismatch"));
         return;

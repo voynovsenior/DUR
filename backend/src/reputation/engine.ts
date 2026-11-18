@@ -43,7 +43,6 @@ const TIER_WEIGHT: Record<ReputationTrustTier, number> = {
   official: 1,
 };
 const HALF_LIFE_SECONDS = 180 * 24 * 60 * 60;
-const MIN_WEIGHT = 0.01;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -92,7 +91,7 @@ export function calculateReputation(
         (item.issuedAt === current.issuedAt && item.id > current.id)) latest.set(key, item);
   }
 
-  const accepted = [...latest.values()];
+  const accepted = [...latest.values()].filter(item => Object.keys(readDimensionValues(item.claim)).length > 0);
   const dimensions = {} as Record<ReputationDimension, ReputationDimensionResult>;
   for (const dimension of REPUTATION_DIMENSIONS) {
     let weightedTotal = 0;
@@ -106,7 +105,7 @@ export function calculateReputation(
       const age = Math.max(0, nowSeconds - item.issuedAt);
       const recencyWeight = Math.pow(0.5, age / HALF_LIFE_SECONDS);
       const weight = TIER_WEIGHT[item.trustTier] * recencyWeight;
-      if (weight < MIN_WEIGHT) continue;
+      if (weight <= 0) continue;
       weightedTotal += value * weight;
       totalWeight += weight;
       evidenceCount += 1;

@@ -56,3 +56,7 @@ Telegram Serverless access is not assumed. If access becomes available, evaluate
 - [ ] Consent grants and issuer API keys reviewed before enabling external issuers
 - [ ] Indexer imports remain marked unverified until independent proof verification is implemented
 - [ ] Build and mobile smoke tests pass
+
+## Build-tooling network boundary
+
+The production dependency audit is enforced in CI. The current full development audit still reports a Vite build-chain `picomatch` advisory without an available upstream patched release. Keep the Vite development server local-only; production deployments must serve the built static assets and must not run the Vite dev server.

@@ -106,16 +106,34 @@ test('indexer store records secure transaction proofs without promoting semantic
     masterchainSeqno: 200,
     masterchainRootHash: 'e'.repeat(64),
     proofPolicy: 'secure',
-    verifierVersion: '0.1.0',
+    verifierVersion: '0.2.0',
+    currentAccountCodeHash: 'f'.repeat(64),
+    escrowEvents: [{
+      schemaVersion: 1,
+      dealId: '42',
+      eventSequence: 3,
+      eventType: 'funded',
+      previousState: 'accepted',
+      newState: 'funded',
+      actor: '0:' + 'a'.repeat(64),
+      counterparty: '0:' + 'b'.repeat(64),
+      termsHash: 'c'.repeat(64),
+      decision: 'none',
+    }],
+    eventDecodeErrors: [],
   };
   assert.equal(store.markTransactionVerified(String(event.id), proof, 1_800_000_100), true);
   const listed = store.listEvents({ network: 'ton-testnet' })[0] as typeof event & {
-    transactionProof: { network: string; masterchainSeqno: number; proofPolicy: string } | null;
+    transactionProof: { network: string; masterchainSeqno: number; proofPolicy: string; currentAccountCodeHash: string; observedEscrowEvents: Array<{ dealId: string; eventType: string }>; eventDecodeErrors: string[] } | null;
   };
   assert.equal(listed.verificationStatus, 'unverified');
   assert.equal(listed.transactionProof?.network, 'ton-testnet');
   assert.equal(listed.transactionProof?.masterchainSeqno, 200);
   assert.equal(listed.transactionProof?.proofPolicy, 'secure');
+  assert.equal(listed.transactionProof?.currentAccountCodeHash, 'f'.repeat(64));
+  assert.equal(listed.transactionProof?.observedEscrowEvents[0].dealId, '42');
+  assert.equal(listed.transactionProof?.observedEscrowEvents[0].eventType, 'funded');
+  assert.deepEqual(listed.transactionProof?.eventDecodeErrors, []);
   db.close();
 });
 
@@ -132,7 +150,7 @@ test('indexer store rejects proof results that do not match the stored transacti
     masterchainSeqno: 200,
     masterchainRootHash: 'e'.repeat(64),
     proofPolicy: 'secure',
-    verifierVersion: '0.1.0',
+    verifierVersion: '0.2.0',
   }), /transaction_proof_event_mismatch/);
   db.close();
 });
@@ -151,7 +169,7 @@ test('indexer store does not attach transaction proofs to quarantined events', (
     masterchainSeqno: 200,
     masterchainRootHash: 'e'.repeat(64),
     proofPolicy: 'secure',
-    verifierVersion: '0.1.0',
+    verifierVersion: '0.2.0',
   }), /event_quarantined/);
   db.close();
 });

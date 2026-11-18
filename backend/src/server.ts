@@ -151,7 +151,7 @@ export function createApiServer(options: ApiOptions = {}) {
     (process.env.TRUSTED_PROXY_IPS ?? '').split(',').map(value => value.trim()).filter(Boolean);
   const trustedProxyIps = new Set(configuredTrustedProxies.map(value => value.replace(/^::ffff:/i, '').toLowerCase()));
   const clientKey = (req: IncomingMessage, scope: string) =>
-    `${scope}:${resolveClientIp(req.socket.remoteAddress, req.headers['x-forwarded-for'], trustedProxyIps)}`;
+    `${scope}:${resolveClientIp(req.socket.remoteAddress, Array.isArray(req.headers['x-forwarded-for']) ? req.headers['x-forwarded-for'].join(',') : req.headers['x-forwarded-for'], trustedProxyIps)}`;
   const enforceLimit = (res: ServerResponse, requestId: string, key: string, limit: number) => {
     const result = consumeRateLimit(rateBuckets, key, limit, 60_000);
     if (result.allowed) return false;

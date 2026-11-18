@@ -109,7 +109,7 @@ test('indexer store records secure transaction proofs without promoting semantic
     verifierVersion: '0.2.0',
     currentAccountCodeHash: 'f'.repeat(64),
     escrowEvents: [{
-      schemaVersion: 1,
+      schemaVersion: 1 as const,
       dealId: '42',
       eventSequence: 3,
       eventType: 'funded',

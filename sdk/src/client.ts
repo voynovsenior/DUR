@@ -183,6 +183,8 @@ export type AttestationDispute = {
 };
 
 export type ReputationTrustTier = "unverified" | "verified" | "trusted" | "official";
+export type IssuerStatus = "active" | "suspended" | "revoked";
+
 
 export type ProfileVisibilityConsent = {
   id: string;
@@ -286,6 +288,37 @@ export class DurAdminClient {
       throw new DurApiError(code, response.status, code);
     }
     return body as T;
+  }
+
+  createIssuer(input: { displayName: string; issuerType: string }) {
+    return this.request<{
+      issuer: IssuerDirectoryEntry & { status: IssuerStatus };
+      apiKey: string;
+    }>('/v1/admin/issuers', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  setIssuerStatus(issuerId: string, status: IssuerStatus) {
+    return this.request<{ issuerId: string; status: IssuerStatus }>(
+      `/v1/admin/issuers/${encodeURIComponent(issuerId)}/status`,
+      { method: 'POST', body: JSON.stringify({ status }) },
+    );
+  }
+
+  registerSchema(schemaId: string, schemaVersion: number, schema: Record<string, JsonValue>) {
+    if (!Number.isSafeInteger(schemaVersion) || schemaVersion < 1) {
+      throw new Error('invalid_schema_version');
+    }
+    return this.request<{
+      schemaId: string;
+      schemaVersion: number;
+      status: 'active';
+    }>('/v1/admin/schemas', {
+      method: 'POST',
+      body: JSON.stringify({ schemaId, schemaVersion, schema }),
+    });
   }
 
   setIssuerTrustTier(issuerId: string, trustTier: ReputationTrustTier, reason: string) {

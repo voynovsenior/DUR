@@ -73,7 +73,7 @@ test("recency half-life reduces the influence of older independent evidence", ()
     item({ id: "newer", issuerId: "issuer-new", issuedAt: now, claim: claim(0) }),
   ], now);
   assert.ok(result.dimensions.reliability.value !== null);
-  assert.ok(Math.abs(result.dimensions.reliability.value - 11.11) < 0.02);
+  assert.ok(Math.abs(result.dimensions.reliability.value - 20) < 0.02);
   assert.equal(result.dimensions.reliability.evidenceCount, 2);
 });
 

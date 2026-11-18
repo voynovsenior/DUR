@@ -223,3 +223,132 @@ get fun `test invalid deadline ordering is rejected before funding`() {
     });
     expect(contract.currentState()).toEqual(EscrowState.Accepted);
 }
+
+
+get fun `test seller acceptance is allowed exactly at the funding deadline`() {
+    val (contract, _, seller, _) = setupTest();
+    testing.setNow(2_000);
+
+    val accept = contract.sendAccept(seller.address, { value: grams("0.1") });
+    expect(accept).toHaveSuccessfulTx<Accept>({
+        from: seller.address,
+        to: contract.address,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Accepted);
+}
+
+get fun `test seller acceptance is rejected after the funding deadline`() {
+    val (contract, _, seller, _) = setupTest();
+    testing.setNow(2_001);
+
+    val accept = contract.sendAccept(seller.address, { value: grams("0.1") });
+    expect(accept).toHaveFailedTx({
+        from: seller.address,
+        to: contract.address,
+        exitCode: Errors.DeadlinePassed,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Created);
+}
+
+get fun `test seller completion is allowed exactly at the completion deadline`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    testing.setNow(3_000);
+
+    val completion = contract.sendMarkComplete(seller.address, { value: grams("0.1") });
+    expect(completion).toHaveSuccessfulTx<MarkComplete>({
+        from: seller.address,
+        to: contract.address,
+    });
+    expect(contract.agreementDetails().completionMarked).toEqual(true);
+}
+
+get fun `test seller completion is rejected after the completion deadline`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    testing.setNow(3_001);
+
+    val completion = contract.sendMarkComplete(seller.address, { value: grams("0.1") });
+    expect(completion).toHaveFailedTx({
+        from: seller.address,
+        to: contract.address,
+        exitCode: Errors.DeadlinePassed,
+    });
+    expect(contract.agreementDetails().completionMarked).toEqual(false);
+}
+
+get fun `test dispute is allowed exactly at the dispute deadline`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    testing.setNow(4_000);
+
+    val dispute = contract.sendOpenDispute(buyer.address, { value: grams("0.1") });
+    expect(dispute).toHaveSuccessfulTx<OpenDispute>({
+        from: buyer.address,
+        to: contract.address,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Disputed);
+}
+
+get fun `test dispute is rejected after the dispute deadline`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    testing.setNow(4_001);
+
+    val dispute = contract.sendOpenDispute(buyer.address, { value: grams("0.1") });
+    expect(dispute).toHaveFailedTx({
+        from: buyer.address,
+        to: contract.address,
+        exitCode: Errors.DeadlinePassed,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Funded);
+}
+
+get fun `test buyer refund is unavailable at the dispute deadline but allowed after it`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    testing.setNow(4_000);
+
+    val atDeadline = contract.sendRefund(buyer.address, { value: grams("0.1") });
+    expect(atDeadline).toHaveFailedTx({
+        from: buyer.address,
+        to: contract.address,
+        exitCode: Errors.DeadlinePassed,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Funded);
+
+    testing.setNow(4_001);
+    val afterDeadline = contract.sendRefund(buyer.address, { value: grams("0.1") });
+    expect(afterDeadline).toHaveSuccessfulTx<Refund>({
+        from: buyer.address,
+        to: contract.address,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Refunded);
+}
+
+get fun `test terminal payout cannot be triggered a second time`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    contract.sendMarkComplete(seller.address, { value: grams("0.1") });
+
+    val release = contract.sendApproveRelease(buyer.address, { value: grams("0.1") });
+    expect(release).toHaveSuccessfulTx<ApproveRelease>({
+        from: buyer.address,
+        to: contract.address,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Released);
+
+    val duplicate = contract.sendApproveRelease(buyer.address, { value: grams("0.1") });
+    expect(duplicate).toHaveFailedTx({
+        from: buyer.address,
+        to: contract.address,
+        exitCode: Errors.InvalidState,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Released);
+}

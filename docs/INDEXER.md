@@ -1,6 +1,6 @@
 # TON Indexer and Verifier — Architecture Draft
 
-Status: manual and continuous Testnet ingestion, durable event storage, and a separate secure transaction proof verifier are implemented. TON Center API v3 imports remain `unverified` until the admin verification endpoint checks the transaction against a trusted Testnet masterchain/account history. Transaction verification does not yet decode or validate DUR contract event semantics.
+Status: manual and continuous Testnet ingestion, durable event storage, a separate secure transaction proof verifier, and v1 escrow lifecycle-event extraction are implemented. TON Center API v3 imports remain `unverified` until the admin verification endpoint checks the transaction against a trusted Testnet masterchain/account history. The verifier extracts event observations from the proof-verified transaction, but source-contract identity and semantic verification remain pending.
 
 ## 1. Current implementation
 
@@ -9,9 +9,10 @@ Status: manual and continuous Testnet ingestion, durable event storage, and a se
 - `npm run indexer:sync` performs a bounded one-shot sync. Configure `TONCENTER_API_URL`, optional `TONCENTER_API_KEY`, `INDEXER_START_SEQNO` for the first run, and `INDEXER_MAX_BLOCKS`.
 - `npm run indexer:worker` continuously polls the Testnet masterchain, resumes from the durable checkpoint after restarts, processes bounded batches, waits between batches, and backs off after provider errors. Configure `INDEXER_POLL_INTERVAL_MS`, `INDEXER_BATCH_DELAY_MS`, and `INDEXER_MAX_BLOCKS`. It stops cleanly on SIGINT/SIGTERM.
 - The adapter is Testnet-only. It deliberately marks every imported transaction `unverified`, because the indexed HTTP response is not itself a cryptographic proof. No reputation calculation consumes these rows.
-- `proof-verifier/` is a Go CLI built on `tonutils-go` with `ProofCheckPolicySecure`, a Testnet global-config trust anchor, masterchain proof-chain checks, account-state proof checks, and transaction hash-chain verification from the proved account state.
-- `POST /v1/admin/indexer/events/{id}/verify-transaction` runs the verifier for a stored event. Configure `DUR_PROOF_VERIFIER_BIN` to the built binary. The endpoint stores proof provenance but deliberately leaves `verificationStatus` as `unverified`.
-- The verifier is Testnet-only. It verifies that a transaction belongs to the authenticated account history; it does not prove that a decoded application-level claim is correct. The database stores a compact verification receipt (trusted masterchain root, sequence number, verifier version and timestamp), not the raw proof BOCs; verification can be independently re-run against the liteserver.
+- `contracts/types.tolk` defines the versioned `EscrowLifecycleEvent` external-log envelope. The escrow contract emits one lifecycle event per accepted transition/vote, with a per-deal sequence, deal ID, terms hash, states, actor, counterparty and decision.
+- `proof-verifier/` is a Go CLI built on `tonutils-go` with `ProofCheckPolicySecure`, a Testnet global-config trust anchor, masterchain proof-chain checks, account-state proof checks, and transaction hash-chain verification from the proved account state. It decodes matching v1 lifecycle logs from the proved transaction's outgoing external messages.
+- `POST /v1/admin/indexer/events/{id}/verify-transaction` runs the verifier for a stored event. Configure `DUR_PROOF_VERIFIER_BIN` to the built binary. The endpoint stores proof provenance and decoded observations but deliberately leaves `verificationStatus` as `unverified` and reports `semanticVerification: pending`.
+- The verifier is Testnet-only. It proves transaction inclusion and that the decoded event body was present in the proved transaction. It does not establish that the source account is an approved DUR contract or that the event is a trusted business claim. `currentAccountCodeHash` is the code hash at verification time, not a historical code hash at the event transaction. The database stores a compact receipt and decoded observations, not raw proof BOCs; verification can be independently re-run against the liteserver.
 
 ## 2. Trust model
 
@@ -24,10 +25,11 @@ RPC responses and indexer inputs are untrusted until independently checked. The 
 3. Fetch transaction data and message bodies for configured contracts and event types.
 4. Verify the masterchain proof chain from the trusted Testnet configuration.
 5. Verify the account state and transaction hash chain against the proved account state.
-6. Decode only known contract versions and event schemas; this is still pending.
-7. Normalize the event into a versioned DUR evidence record.
-8. Insert using a deterministic idempotency key.
-9. Advance the durable checkpoint only after all events in the batch are committed.
+6. Extract supported v1 escrow lifecycle logs from the outgoing messages of the proof-verified transaction.
+7. Verify the source contract address and historical code identity against a reviewed allowlist; this remains pending.
+8. Apply a versioned semantic policy before creating a DUR evidence record.
+9. Insert using a deterministic idempotency key.
+10. Advance the durable checkpoint only after all events in the batch are committed.
 
 ## 4. Evidence event identity
 
@@ -46,7 +48,8 @@ Store provenance fields such as:
 
 - Reprocessing must be idempotent.
 - Incomplete batches must not advance checkpoints.
-- Unknown contract code hashes must be quarantined, not guessed.
+- Unknown contract addresses/code hashes and unsupported event versions must remain unverified or be quarantined, not guessed.
+- A current account code hash must never be misrepresented as historical code identity at the event transaction.
 - Decoder errors must be observable and must not silently drop events.
 - Provider disagreement or missing archival data must halt or downgrade verification status.
 - Corrections must append a status event rather than rewriting evidence history without trace.

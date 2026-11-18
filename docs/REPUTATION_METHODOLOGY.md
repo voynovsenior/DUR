@@ -1,6 +1,6 @@
 # DUR Reputation Methodology
 
-Status: **experimental implementation v0.1.0**. This is a deterministic attestation projection for development and Testnet evaluation, not a calibrated universal trust score.
+Status: **experimental implementation v0.2.0**. This is a deterministic attestation projection for development and Testnet evaluation, not a calibrated universal trust score.
 
 ## 1. Dimensions
 
@@ -44,7 +44,7 @@ Each dimension is a weighted arithmetic mean:
 
 `dimension = sum(value * tierWeight * recencyWeight) / sum(tierWeight * recencyWeight)`
 
-Values are clamped to the 0–100 range and rounded to two decimal places. There is no fixed age cutoff: older evidence has progressively less influence but remains eligible while its attestation is active and unexpired. If no eligible evidence exists for a dimension, its value is `null`. Attestations with no supported dimension values are not included in the eligible evidence totals.
+Values are clamped to the 0–100 range and rounded to two decimal places. Version 0.2.0 also reports two issuer-independence diagnostics per dimension. First, the Herfindahl-style issuer concentration index is the sum of squared issuer weight shares; second, the largest issuer share is the maximum issuer weight divided by total weight. Weights are aggregated by issuer across all eligible schemas before calculating these diagnostics. A concentration index of 1 means all eligible weight comes from one issuer; lower values indicate a more distributed issuer set. These metrics do not prove that issuers are independently controlled and are not collusion detectors. There is no fixed age cutoff: older evidence has progressively less influence but remains eligible while its attestation is active and unexpired. If no eligible evidence exists for a dimension, its value is `null`. Attestations with no supported dimension values are not included in the eligible evidence totals.
 
 ## 4. Issuer review
 
@@ -54,7 +54,8 @@ Only an administrator can change issuer trust tiers through the protected API. E
 
 - The projection summarizes issuer claims; it does not prove that the underlying claims are true.
 - Tier assignment is an administrative trust judgment, not a cryptographic guarantee.
-- The current implementation does not calculate counterparty independence, deal completion ratios, graph-based Sybil risk, or verified on-chain outcomes.
+- Issuer concentration metrics describe the distribution of weighted evidence; they do not establish counterparty independence, detect collusion, or prove distinct beneficial ownership.
+- The current implementation does not calculate deal completion ratios, graph-based Sybil risk, or verified on-chain outcomes.
 - It does not include unverified indexer events.
 - A wallet is not proof of a unique human identity.
 - No score should be used as the sole basis for financial, access, moderation or eligibility decisions.
@@ -70,4 +71,4 @@ Only an administrator can change issuer trust tiers through the protected API. E
 
 ## 7. Versioning
 
-Any change to eligible evidence, dimensions, tier weights, decay, deduplication or aggregation must increment the methodology version and include deterministic regression tests. Existing outputs must remain attributable to the methodology version that produced them.
+Any change to eligible evidence, dimensions, tier weights, decay, deduplication, aggregation or reported diagnostics must increment the methodology version and include deterministic regression tests. Existing outputs must remain attributable to the methodology version that produced them.

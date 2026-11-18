@@ -6,25 +6,25 @@ This document separates repository work from operator-only deployment actions. D
 
 ## Current automated baseline
 
-The latest fully green run set before this documentation update was commit `735ac16d583f6e004b2970c4b0bb086766464dce`. All four workflows completed successfully:
+The latest fully green run set is commit `4d380a86b98d3bc672de226a762dfa5c87138d9a` (2026-11-18). All four required workflows completed successfully on this exact HEAD:
 - CI build, type checks and automated tests, including the owner-only attestation-history route and Mini App reputation view;
 - container configuration and API/web image builds;
 - Tolk contract build, formatting, lint and emulator tests;
 - Go proof-verifier race tests, vet and build.
 
-These checks validate repository consistency only. They do not replace mobile QA, live Testnet integration, or an independent security review.
+These checks validate repository consistency only. They do not replace mobile QA, live Testnet integration, or an independent security review. The escrow contract remains an experimental artifact: its payout bounce handler is empty, and the repository does not yet demonstrate safe recovery of a failed payout. It must not be deployed or used to hold funds. The UI correctly remains a non-interactive design preview.
 
 ## Work that must be complete before asking the operator for deployment secrets
 
 - [ ] Complete API and UI integration for actual user journeys; the current Escrow screen is a preview and the Escrow API is not implemented.
-- [ ] Resolve and test escrow payout failure/bounce behavior, value conservation, deadline boundaries, replay/malformed messages, and the arbiter-unavailable dispute-lock condition.
+- [ ] Either complete a separately reviewed escrow release (including payout failure/bounce recovery, value conservation, deadline boundaries, replay/malformed messages, and arbiter-unavailable dispute recovery) or explicitly exclude escrow from the deployed pilot and verify that no escrow contract/API/funding path is exposed.
 - [ ] Add reviewed contract address and historical code-hash identity policy before treating decoded events as trusted DUR events.
 - [ ] Add end-to-end Testnet fixtures for transaction proofs, event decoding, checkpoint restart, duplicate batches, and provider disagreement.
 - [ ] Finish deployment hardening: backup/restore procedure, production logging/monitoring, and mobile Telegram QA.
 - [ ] Re-run all CI workflows on the final candidate commit and review dependency audit output.
 - [ ] Prepare a deployment-specific checklist with exact values and a rollback procedure.
 
-Do not mark a checkbox complete merely because a related module or draft document exists.
+Do not mark a checkbox complete merely because a related module or draft document exists. The current repository is not at the secret-entry handoff point: the operator must not provide deployment credentials until every applicable gate above is evidenced, not merely documented.
 
 ## Operator inputs needed later
 

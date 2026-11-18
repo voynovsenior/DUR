@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import { createApiServer } from '../src/server';
 import { openDatabase } from '../src/identity/database';
 import { AttestationRegistry } from '../src/attestations/registry';
+import { AttestationDisputeRegistry } from '../src/attestations/disputes';
 import { ChainEventStore } from '../src/indexer/event-store';
 
 const token = '123456:LOCAL_TEST_TOKEN';
@@ -607,6 +608,59 @@ test('profile visibility consent grants and revokes anonymous reputation access'
 
     const anonymousAfterRevoke = await fetch(`${base}/v1/profiles/${encodeURIComponent(subjectId)}/reputation`);
     assert.equal(anonymousAfterRevoke.status, 404);
+  });
+});
+
+
+
+test('admin dispute queue is authenticated, filterable and bounded', async () => {
+  await withServer(async (base, db) => {
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    assert.equal(login.status, 200);
+    const loginBody = await login.json() as { user: { id: string } };
+
+    const issuers = new AttestationRegistry(db);
+    const created = issuers.createIssuer({ displayName: 'Admin Queue Test', issuerType: 'marketplace' });
+    const attestation = issuers.issue(created.issuer.id, {
+      schemaId: 'dur.delivery.completed',
+      schemaVersion: 1,
+      subjectId: `wallet:-3:0:${'a'.repeat(64)}`,
+      claim: { completed: true },
+      evidenceRefs: [],
+    });
+    const disputes = new AttestationDisputeRegistry(db);
+    const opened = disputes.open({
+      attestationId: attestation.id,
+      subjectId: attestation.subjectId,
+      openedByUserId: loginBody.user.id,
+      reason: 'The delivery completion claim requires review.',
+    });
+
+    const anonymous = await fetch(`${base}/v1/admin/disputes`);
+    assert.equal(anonymous.status, 401);
+
+    const queue = await fetch(`${base}/v1/admin/disputes?status=open&limit=10`, {
+      headers: { authorization: 'Bearer unit-test-admin-value' },
+    });
+    assert.equal(queue.status, 200);
+    const queueBody = await queue.json() as { disputes: Array<{ id: string; status: string }> };
+    assert.deepEqual(queueBody.disputes.map(item => ({ id: item.id, status: item.status })), [
+      { id: opened.id, status: 'open' },
+    ]);
+
+    const invalidStatus = await fetch(`${base}/v1/admin/disputes?status=unknown`, {
+      headers: { authorization: 'Bearer unit-test-admin-value' },
+    });
+    assert.equal(invalidStatus.status, 400);
+
+    const invalidLimit = await fetch(`${base}/v1/admin/disputes?limit=101`, {
+      headers: { authorization: 'Bearer unit-test-admin-value' },
+    });
+    assert.equal(invalidLimit.status, 400);
   });
 });
 

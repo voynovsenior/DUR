@@ -476,3 +476,85 @@ get fun `test mutual resolution vote is unavailable before a dispute`() {
     });
     expect(contract.currentState()).toEqual(EscrowState.Funded);
 }
+
+
+get fun `test acceptance emits a versioned lifecycle event`() {
+    val (contract, buyer, seller, _) = setupTest();
+    val accept = contract.sendAccept(seller.address, { value: grams("0.1") });
+
+    expect(accept).toEmitExternalMessage<EscrowLifecycleEvent>();
+    val event = accept.findExternalOutMessage<EscrowLifecycleEvent>({
+        from: contract.address,
+    });
+    expect(event).toBeNotNull();
+    expect(event!.loadBody()).toEqual(EscrowLifecycleEvent {
+        schemaVersion: 1,
+        dealId: 1,
+        eventSequence: 1,
+        eventType: EscrowEventType.Accepted,
+        previousState: EscrowState.Created,
+        newState: EscrowState.Accepted,
+        actor: seller.address,
+        counterparty: buyer.address,
+        termsHash: 0x1234,
+        decision: ResolutionVote.NoVote,
+    });
+    expect(contract.agreementDetails().eventSequence).toEqual(1);
+}
+
+get fun `test lifecycle event sequence increments across funding and completion`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    val fund = contract.sendFund(buyer.address, { value: grams("1") });
+    expect(fund).toEmitExternalMessage<EscrowLifecycleEvent>();
+    val fundingEvent = fund.findExternalOutMessage<EscrowLifecycleEvent>({
+        from: contract.address,
+    });
+    expect(fundingEvent).toBeNotNull();
+    expect(fundingEvent!.loadBody().eventSequence).toEqual(2);
+    expect(fundingEvent!.loadBody().eventType).toEqual(EscrowEventType.Funded);
+
+    val completion = contract.sendMarkComplete(seller.address, { value: grams("0.1") });
+    expect(completion).toEmitExternalMessage<EscrowLifecycleEvent>();
+    val completionEvent = completion.findExternalOutMessage<EscrowLifecycleEvent>({
+        from: contract.address,
+    });
+    expect(completionEvent).toBeNotNull();
+    expect(completionEvent!.loadBody().eventSequence).toEqual(3);
+    expect(completionEvent!.loadBody().eventType).toEqual(EscrowEventType.CompletionMarked);
+}
+
+get fun `test mutual dispute resolution emits a terminal event after the vote event`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    contract.sendOpenDispute(buyer.address, { value: grams("0.1") });
+
+    val firstVote = contract.sendVoteResolution(
+        buyer.address,
+        ResolutionVote.ReleaseToSeller,
+        { value: grams("0.1") },
+    );
+    expect(firstVote).toEmitExternalMessage<EscrowLifecycleEvent>();
+    val voteEvent = firstVote.findExternalOutMessage<EscrowLifecycleEvent>({
+        from: contract.address,
+    });
+    expect(voteEvent).toBeNotNull();
+    expect(voteEvent!.loadBody().eventType).toEqual(EscrowEventType.DisputeVoteRecorded);
+    expect(voteEvent!.loadBody().eventSequence).toEqual(4);
+
+    val secondVote = contract.sendVoteResolution(
+        seller.address,
+        ResolutionVote.ReleaseToSeller,
+        { value: grams("0.1") },
+    );
+    expect(secondVote).toEmitExternalMessage<EscrowLifecycleEvent>();
+    val resolutionEvent = secondVote.findExternalOutMessage<EscrowLifecycleEvent>({
+        from: contract.address,
+    });
+    expect(resolutionEvent).toBeNotNull();
+    expect(resolutionEvent!.loadBody().eventType).toEqual(EscrowEventType.MutualDisputeResolved);
+    expect(resolutionEvent!.loadBody().newState).toEqual(EscrowState.Released);
+    expect(resolutionEvent!.loadBody().decision).toEqual(ResolutionVote.ReleaseToSeller);
+    expect(resolutionEvent!.loadBody().eventSequence).toEqual(5);
+}

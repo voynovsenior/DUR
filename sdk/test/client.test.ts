@@ -94,3 +94,13 @@ test('admin SDK keeps bearer authentication on administrative routes', async () 
   assert.equal(calls[1].url, 'https://api.example.com/v1/admin/disputes/dispute-1/resolve');
   assert.equal(calls[2].url, 'https://api.example.com/v1/admin/indexer/events/event-1/verify-transaction');
 });
+
+
+test('SDK clients reject cleartext remote endpoints and accept loopback HTTP for local development', () => {
+  assert.throws(() => new DurIssuerClient({ baseUrl: 'http://api.example.com', apiKey: 'key' }), /invalid_base_url/);
+  assert.throws(() => new DurSubjectClient({ baseUrl: 'http://api.example.com' }), /invalid_base_url/);
+  assert.throws(() => new DurAdminClient({ baseUrl: 'http://api.example.com', adminToken: 'secret' }), /invalid_base_url/);
+  assert.doesNotThrow(() => new DurIssuerClient({ baseUrl: 'http://localhost:8787', apiKey: 'key' }));
+  assert.doesNotThrow(() => new DurSubjectClient({ baseUrl: 'http://127.0.0.1:8787' }));
+  assert.doesNotThrow(() => new DurAdminClient({ baseUrl: 'http://[::1]:8787', adminToken: 'secret' }));
+});

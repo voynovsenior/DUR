@@ -26,6 +26,50 @@ export class AttestationRegistry {
     `).all();
   }
 
+  setIssuerTrustTier(
+    issuerId: string,
+    trustTier: 'unverified' | 'verified' | 'trusted' | 'official',
+    reason: string,
+    actor = 'admin',
+    nowSeconds = Math.floor(Date.now() / 1000),
+  ) {
+    const normalizedReason = reason.trim();
+    if (!normalizedReason || normalizedReason.length > 512) throw new Error('invalid_trust_tier_reason');
+    const transaction = this.db.transaction(() => {
+      const issuer = this.db.prepare('SELECT trust_tier AS trustTier FROM issuers WHERE id = ?')
+        .get(issuerId) as { trustTier: string } | undefined;
+      if (!issuer) return false;
+      if (issuer.trustTier === trustTier) return true;
+      this.db.prepare('UPDATE issuers SET trust_tier = ?, updated_at = ? WHERE id = ?')
+        .run(trustTier, nowSeconds, issuerId);
+      this.db.prepare(`
+        INSERT INTO issuer_trust_events
+          (id, issuer_id, previous_tier, new_tier, actor, reason, occurred_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(randomUUID(), issuerId, issuer.trustTier, trustTier, actor, normalizedReason, nowSeconds);
+      return true;
+    });
+    return transaction();
+  }
+
+  listReputationEvidence(subjectId: string, nowSeconds = Math.floor(Date.now() / 1000)) {
+    const rows = this.db.prepare(`
+      SELECT a.id, a.issuer_id AS issuerId, a.schema_id AS schemaId,
+             a.issued_at AS issuedAt, a.expires_at AS expiresAt,
+             a.status, i.trust_tier AS trustTier, a.claim_json AS claimJson
+      FROM attestations a
+      JOIN issuers i ON i.id = a.issuer_id
+      WHERE a.subject_id = ? AND a.status = 'active' AND i.status = 'active'
+        AND (a.expires_at IS NULL OR a.expires_at > ?)
+      ORDER BY a.issued_at DESC, a.id DESC
+    `).all(subjectId, nowSeconds) as Array<{
+      id: string; issuerId: string; schemaId: string; issuedAt: number;
+      expiresAt: number | null; status: string;
+      trustTier: 'unverified' | 'verified' | 'trusted' | 'official'; claimJson: string;
+    }>;
+    return rows.map(({ claimJson, ...row }) => ({ ...row, claim: JSON.parse(claimJson) as Record<string, unknown> }));
+  }
+
   createIssuer(input: { displayName: string; issuerType: string }, nowSeconds = Math.floor(Date.now() / 1000)) {
     const displayName = input.displayName?.trim();
     const issuerType = input.issuerType?.trim();

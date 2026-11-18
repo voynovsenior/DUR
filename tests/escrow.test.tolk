@@ -27,6 +27,8 @@ fun setupTest(): (Escrow, Treasury, Treasury, Treasury) {
         amount: grams("1"),
         state: EscrowState.Created,
         completionMarked: false,
+        buyerVote: ResolutionVote.NoVote,
+        sellerVote: ResolutionVote.NoVote,
         extra: extra.toCell(),
     });
 
@@ -177,6 +179,8 @@ get fun `test zero terms hash is rejected before funding`() {
         amount: grams("1"),
         state: EscrowState.Created,
         completionMarked: false,
+        buyerVote: ResolutionVote.NoVote,
+        sellerVote: ResolutionVote.NoVote,
         extra: extra.toCell(),
     });
     contract.deploy(buyer.address, { value: grams("0.5") });
@@ -210,6 +214,8 @@ get fun `test invalid deadline ordering is rejected before funding`() {
         amount: grams("1"),
         state: EscrowState.Created,
         completionMarked: false,
+        buyerVote: ResolutionVote.NoVote,
+        sellerVote: ResolutionVote.NoVote,
         extra: extra.toCell(),
     });
     contract.deploy(buyer.address, { value: grams("0.5") });

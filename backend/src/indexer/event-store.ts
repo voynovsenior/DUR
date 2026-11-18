@@ -236,7 +236,7 @@ export class ChainEventStore {
           verifier_version, verified_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        randomUUID(), id, proof.network, proof.address, proof.transactionLt,
+        randomUUID(), id, 'ton-testnet', proof.address.toLowerCase(), proof.transactionLt,
         proof.transactionHash.toLowerCase(), proof.masterchainSeqno,
         proof.masterchainRootHash.toLowerCase(), proof.proofPolicy,
         proof.verifierVersion, nowSeconds,

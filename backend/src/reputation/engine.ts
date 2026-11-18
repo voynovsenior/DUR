@@ -1,4 +1,4 @@
-export const REPUTATION_METHODOLOGY_VERSION = "0.1.0";
+export const REPUTATION_METHODOLOGY_VERSION = "0.2.0";
 
 export const REPUTATION_DIMENSIONS = [
   "reliability",
@@ -25,6 +25,8 @@ export type ReputationDimensionResult = {
   value: number | null;
   evidenceCount: number;
   issuerCount: number;
+  issuerConcentrationIndex: number | null;
+  largestIssuerShare: number | null;
 };
 
 export type ReputationProjection = {
@@ -104,7 +106,7 @@ export function calculateReputation(
     let weightedTotal = 0;
     let totalWeight = 0;
     let evidenceCount = 0;
-    const issuers = new Set<string>();
+    const issuerWeights = new Map<string, number>();
 
     for (const item of accepted) {
       const value = readDimensionValues(item.claim)[dimension];
@@ -116,13 +118,20 @@ export function calculateReputation(
       weightedTotal += value * weight;
       totalWeight += weight;
       evidenceCount += 1;
-      issuers.add(item.issuerId);
+      issuerWeights.set(item.issuerId, (issuerWeights.get(item.issuerId) ?? 0) + weight);
     }
 
+    const shares = [...issuerWeights.values()].map(weight => weight / totalWeight);
+    const concentration = totalWeight > 0
+      ? shares.reduce((sum, share) => sum + share * share, 0)
+      : null;
+    const largestShare = shares.length > 0 ? Math.max(...shares) : null;
     dimensions[dimension] = {
       value: totalWeight > 0 ? Math.round(clamp(weightedTotal / totalWeight, 0, 100) * 100) / 100 : null,
       evidenceCount,
-      issuerCount: issuers.size,
+      issuerCount: issuerWeights.size,
+      issuerConcentrationIndex: concentration === null ? null : Math.round(concentration * 10_000) / 10_000,
+      largestIssuerShare: largestShare === null ? null : Math.round(largestShare * 10_000) / 10_000,
     };
   }
 
@@ -138,6 +147,7 @@ export function calculateReputation(
       "Repeated updates from one issuer for one schema are reduced to the latest attestation.",
       "Unverified TON indexer events are excluded.",
       "A wallet address is not proof of a unique human identity.",
+      "Issuer concentration is an independence diagnostic, not proof of collusion or common control.",
     ],
   };
 }

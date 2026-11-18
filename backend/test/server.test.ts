@@ -24,15 +24,15 @@ test('health endpoint reports service status', async () => {
     const body = await response.json() as { ok: boolean; service: string; version: string };
     assert.equal(body.ok, true);
     assert.equal(body.service, 'dur-api');
-    assert.equal(body.version, '0.2.0');
+    assert.equal(body.version, '0.3.0');
   });
 });
 
-test('profile endpoint does not fabricate reputation data', async () => {
+test('unknown profile routes return not found', async () => {
   await withServer(async base => {
     const response = await fetch(`${base}/v1/profiles/example`);
-    assert.equal(response.status, 501);
+    assert.equal(response.status, 404);
     const body = await response.json() as { error: string };
-    assert.equal(body.error, 'not_implemented');
+    assert.equal(body.error, 'profile_not_found');
   });
 });

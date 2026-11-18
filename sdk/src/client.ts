@@ -26,6 +26,22 @@ export type AttestationEvent = {
   reason: string | null;
 };
 
+function normalizeApiBaseUrl(value: string): string {
+  const baseUrl = value.trim().replace(/\\/+$/, "");
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    throw new Error("invalid_base_url");
+  }
+  const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+  if ((parsed.protocol !== "https:" && !(parsed.protocol === "http:" && loopbackHosts.has(parsed.hostname))) ||
+      parsed.username || parsed.password || parsed.search || parsed.hash) {
+    throw new Error("invalid_base_url");
+  }
+  return baseUrl;
+}
+
 export class DurApiError extends Error {
   constructor(
     message: string,
@@ -49,8 +65,7 @@ export class DurIssuerClient {
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: DurIssuerClientOptions) {
-    const baseUrl = options.baseUrl.trim().replace(/\/+$/, '');
-    if (!/^https?:\/\//.test(baseUrl)) throw new Error('invalid_base_url');
+    const baseUrl = normalizeApiBaseUrl(options.baseUrl);
     if (!options.apiKey || options.apiKey.length > 256) throw new Error('invalid_api_key');
     this.baseUrl = baseUrl;
     this.apiKey = options.apiKey;
@@ -149,8 +164,7 @@ export class DurSubjectClient {
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: { baseUrl: string; fetchImpl?: typeof fetch }) {
-    const baseUrl = options.baseUrl.trim().replace(/\/+$/, "");
-    if (!/^https?:\/\//.test(baseUrl)) throw new Error("invalid_base_url");
+    const baseUrl = normalizeApiBaseUrl(options.baseUrl);
     this.baseUrl = baseUrl;
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
@@ -220,8 +234,7 @@ export class DurAdminClient {
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: { baseUrl: string; adminToken: string; fetchImpl?: typeof fetch }) {
-    const baseUrl = options.baseUrl.trim().replace(/\/+$/, "");
-    if (!/^https?:\/\//.test(baseUrl)) throw new Error("invalid_base_url");
+    const baseUrl = normalizeApiBaseUrl(options.baseUrl);
     if (!options.adminToken || options.adminToken.length > 512) throw new Error("invalid_admin_token");
     this.baseUrl = baseUrl;
     this.adminToken = options.adminToken;

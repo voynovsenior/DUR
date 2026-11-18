@@ -9,6 +9,7 @@ import { verifyTelegramInitData } from './identity/telegram';
 import { TonProofChallengeStore } from './identity/ton-proof-challenges';
 import { verifyTonProof, type TonProofRequest } from './identity/ton-proof';
 import { AttestationRegistry } from './attestations/registry';
+import { AttestationDisputeRegistry } from './attestations/disputes';
 import type { JsonValue } from './attestations/model';
 import { ChainEventStore } from './indexer/event-store';
 import { AttestationSchemaRegistry } from './attestations/schema-registry';
@@ -120,6 +121,7 @@ export function createApiServer(options: ApiOptions = {}) {
   const sessions = new SessionService(db);
   const tonChallenges = new TonProofChallengeStore(db);
   const attestations = new AttestationRegistry(db);
+  const disputes = new AttestationDisputeRegistry(db);
   const chainEvents = new ChainEventStore(db);
   const schemas = new AttestationSchemaRegistry(db);
   const rateBuckets = new Map<string, RateBucket>();
@@ -467,6 +469,42 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    const disputeResolveRoute = url.pathname.match(/^\/v1\/admin\/disputes\/([^/]+)\/resolve$/);
+    if (disputeResolveRoute && req.method === 'POST') {
+      if (enforceLimit(res, requestId, clientKey(req, 'dispute-resolve-admin'), 20)) return;
+      if (!adminToken) {
+        send(res, 503, { error: 'dispute_admin_not_configured', requestId });
+        return;
+      }
+      if (!secureTokenEquals(bearerToken(req), adminToken)) {
+        send(res, 401, { error: 'admin_unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as { status?: unknown; reason?: unknown };
+        if (!body || (body.status !== 'upheld' && body.status !== 'rejected') ||
+            typeof body.reason !== 'string') {
+          send(res, 400, { error: 'invalid_dispute_resolution', requestId });
+          return;
+        }
+        const dispute = disputes.resolve(disputeResolveRoute[1], body.status, body.reason);
+        if (!dispute) {
+          send(res, 404, { error: 'dispute_not_found', requestId });
+          return;
+        }
+        send(res, 200, { dispute });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'dispute_resolution_failed';
+        send(res, 400, { error: code, requestId });
+      }
+      return;
+    }
+
     const issuerStatusRoute = url.pathname.match(/^\/v1\/admin\/issuers\/([^/]+)\/status$/);
     if (issuerStatusRoute && req.method === 'POST') {
       if (enforceLimit(res, requestId, clientKey(req, 'issuer-status-admin'), 20)) return;
@@ -580,6 +618,60 @@ export function createApiServer(options: ApiOptions = {}) {
       return;
     }
 
+    const disputeOpenRoute = url.pathname.match(/^\/v1\/attestations\/([^/]+)\/disputes$/);
+    if (disputeOpenRoute && req.method === 'POST') {
+      if (enforceLimit(res, requestId, clientKey(req, 'attestation-dispute'), 10)) return;
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      const contentType = req.headers['content-type']?.split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        send(res, 415, { error: 'unsupported_media_type', requestId });
+        return;
+      }
+      try {
+        const body = await readJson(req) as { reason?: unknown; evidenceRefs?: unknown };
+        if (!body || typeof body.reason !== 'string' ||
+            (body.evidenceRefs !== undefined && !Array.isArray(body.evidenceRefs))) {
+          send(res, 400, { error: 'invalid_dispute_request', requestId });
+          return;
+        }
+        const row = db.prepare(
+          "SELECT subject_id AS subjectId FROM attestations WHERE id = ? AND status = 'active'",
+        ).get(disputeOpenRoute[1]) as { subjectId: string } | undefined;
+        if (!row) {
+          send(res, 404, { error: 'attestation_not_found', requestId });
+          return;
+        }
+        if (!/^wallet:-3:0:[a-fA-F0-9]{64}$/.test(row.subjectId)) {
+          send(res, 400, { error: 'unsupported_dispute_subject', requestId });
+          return;
+        }
+        const walletAddress = row.subjectId.slice('wallet:-3:'.length).toLowerCase();
+        const walletLink = db.prepare(
+          "SELECT 1 FROM wallet_links WHERE user_id = ? AND network = '-3' AND address = ?",
+        ).get(user.id, walletAddress);
+        if (!walletLink) {
+          send(res, 403, { error: 'dispute_access_denied', requestId });
+          return;
+        }
+        const dispute = disputes.open({
+          attestationId: disputeOpenRoute[1],
+          subjectId: row.subjectId,
+          openedByUserId: user.id,
+          reason: body.reason,
+          evidenceRefs: body.evidenceRefs as string[] | undefined,
+        });
+        send(res, 201, { dispute });
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'dispute_open_failed';
+        send(res, 400, { error: code, requestId });
+      }
+      return;
+    }
+
     const attestationRoute = url.pathname.match(/^\/v1\/attestations\/([^/]+)(?:\/(revoke))?$/);
     if (attestationRoute && !attestationRoute[2] && req.method === 'GET') {
       const issuer = attestations.authenticateIssuer(bearerToken(req));
@@ -624,6 +716,16 @@ export function createApiServer(options: ApiOptions = {}) {
         const status = code === 'payload_too_large' ? 413 : code === 'invalid_json' ? 400 : 400;
         send(res, status, { error: code, requestId });
       }
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/v1/auth/disputes') {
+      const user = sessions.getUser(readCookie(req, COOKIE_NAME));
+      if (!user) {
+        send(res, 401, { error: 'unauthorized', requestId });
+        return;
+      }
+      send(res, 200, { disputes: disputes.listForUser(user.id) });
       return;
     }
 

@@ -40,13 +40,11 @@ fun onInternalMessage(in: InMessage) {
             assert (extra.dealId > 0) throw Errors.InvalidTerms;
             assert (extra.termsHash > 0) throw Errors.InvalidTerms;
             assert (
-                storage.buyer != storage.seller &&
-                storage.buyer != storage.arbiter &&
+                storage.buyer != storage.seller && storage.buyer != storage.arbiter &&
                 storage.seller != storage.arbiter
             ) throw Errors.InvalidTerms;
             assert (
-                extra.fundingDeadline > 0 &&
-                extra.completionDeadline >= extra.fundingDeadline &&
+                extra.fundingDeadline > 0 && extra.completionDeadline >= extra.fundingDeadline &&
                 extra.disputeDeadline >= extra.completionDeadline
             ) throw Errors.InvalidTerms;
             assert (blockchain.now() <= extra.fundingDeadline) throw Errors.DeadlinePassed;

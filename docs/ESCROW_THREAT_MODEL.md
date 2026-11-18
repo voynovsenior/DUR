@@ -66,13 +66,14 @@ Assumptions:
 
 ### E-02 — Arbiter unavailable or malicious
 
-**Observed in prototype:** a disputed agreement has no resolution timeout or alternate arbiter path.
+**Observed in prototype:** version 0.2.0 adds bilateral resolution votes: buyer and seller may independently vote to release or refund, and matching votes finalize that outcome. Either party may revise its own vote while the dispute remains open. The arbiter can still resolve the dispute independently. There is no timeout or automatic fallback.
 
-**Risk:** funds can remain locked indefinitely if the arbiter disappears. A malicious arbiter can choose either payout destination.
+**Risk:** funds can remain locked indefinitely if the parties disagree and the arbiter disappears. A malicious arbiter can choose either payout destination. The bilateral path reduces reliance on the arbiter only when both parties agree; it does not guarantee dispute resolution.
 
 **Required controls:**
-- disclose arbiter powers before acceptance;
-- choose a bounded dispute window and deterministic fallback;
+- disclose arbiter powers and the bilateral-vote rules before acceptance;
+- test matching votes, conflicting votes, vote changes, unauthorized votes and arbiter resolution after a vote;
+- choose a bounded dispute window and deterministic fallback only if it cannot permit unilateral theft;
 - consider mutually agreed resolution or a carefully specified timeout path;
 - ensure fallback cannot let either party steal funds by unilateral timeout;
 - test all deadline boundary conditions and arbiter authorization.
@@ -151,7 +152,7 @@ Assumptions:
 4. No payout occurs before a permitted release/refund transition.
 5. Only the designated role may invoke each transition.
 6. Terms and parties remain immutable after funding.
-7. An open dispute blocks both timeout-based payout paths.
+7. An open dispute blocks timeout-based payout paths; only an authorized arbiter decision or matching buyer/seller votes may resolve it.
 8. A failed payout has an explicit, tested recovery path and cannot cause double payment.
 9. Fees and storage reserve are accounted for separately from escrow principal.
 10. Reputation and indexer inputs cannot authorize fund movement.
@@ -165,7 +166,7 @@ Assumptions:
 | Funding | Exact amount, underpayment, overpayment, wrong buyer, after deadline |
 | Payout | Buyer approval, arbiter release/refund, timeout claim/refund |
 | Bounce/action | Bounce, no-bounce, recipient rejection, insufficient reserve, send failure |
-| Disputes | Open at deadline boundary; dispute blocks timeout; arbiter unavailable |
+| Disputes | Open at deadline boundary; dispute blocks timeout; matching/conflicting/revised bilateral votes; arbiter unavailable |
 | Accounting | Principal conservation, fee reserve, repeated payout attempts |
 | Data | Malformed message, wrong opcode, invalid terms cell, unsupported version |
 | Events | Stable event sequence, versioned decoding, unknown code hash quarantine |

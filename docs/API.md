@@ -72,6 +72,10 @@ Requires a Telegram-authenticated session and a TON Testnet wallet already linke
 
 Lists consent grants belonging to the authenticated account.
 
+### GET /v1/auth/attestations
+
+Requires an authenticated Telegram session and a Testnet wallet linked to that account. Pass the raw wallet address as the `walletAddress` query parameter. Returns up to 100 attestations issued for that wallet, including the claim, evidence references, issuer metadata and effective status (active, expired, revoked or disputed). An unlinked wallet returns HTTP 403; the route never acts as a public attestation directory.
+
 ### POST /v1/auth/consents/{id}/revoke
 
 Revokes the selected grant. Subsequent attestation issuance for that wallet/issuer/schema combination is rejected.

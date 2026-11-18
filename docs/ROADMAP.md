@@ -51,7 +51,8 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] Pure state-transition model and validation tests
 - [x] Experimental Tolk contract prototype
 - [x] Initial Acton build and eight emulator tests (per current escrow specification)
-- [ ] Complete threat model and enforceable invariants
+- [x] Draft escrow threat model and release-gate register
+- [ ] Complete enforceable invariants and independent threat-model review
 - [ ] Property-based conservation and terminal-state tests
 - [ ] Adversarial tests for replay, malformed messages, timing boundaries, bounce and gas behavior
 - [ ] Resolve arbiter-unavailable / indefinite-dispute-lock risk

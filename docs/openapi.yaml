@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: DUR API
   version: 0.3.0
-  description: Development preview API. Some identity, issuer and manual Testnet indexer foundations are implemented; reputation and escrow are not.
+  description: Development preview API. Identity, attestations, consent, manual Testnet indexing and an experimental attestation-based reputation projection are implemented; escrow is not.
 servers:
   - url: http://localhost:8787
 paths:
@@ -40,7 +40,7 @@ paths:
                   capabilities:
                     type: object
                     properties:
-                      reputation: { type: string, const: not_implemented }
+                      reputation: { type: string, const: experimental_attestation_projection_v0.1 }
                       attestations: { type: string, const: issuer_registry_available }
                       escrow: { type: string, const: not_implemented }
                       chainIndexing: { type: string, const: manual_testnet_sync_available }
@@ -218,26 +218,48 @@ paths:
                   trust: { type: string, const: provider_indexed_data_unverified }
         '400':
           description: Invalid network or query filter
-  /v1/profiles/{identifier}:
-    get:
-      summary: Reputation profile placeholder
+  /v1/admin/issuers/{id}/trust-tier:
+    post:
+      summary: Set an issuer trust tier with an audit reason
+      security:
+        - AdminBearer: []
       parameters:
-        - name: identifier
+        - name: id
           in: path
           required: true
-          schema: { type: string }
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trustTier, reason]
+              properties:
+                trustTier: { type: string, enum: [unverified, verified, trusted, official] }
+                reason: { type: string, minLength: 1, maxLength: 512 }
       responses:
-        '501':
-          description: Profile system is not implemented
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [error, message, requestId]
-                properties:
-                  error: { type: string, const: not_implemented }
-                  message: { type: string }
-                  requestId: { type: string, format: uuid }
+        '200':
+          description: Trust tier updated and audit event recorded
+        '400':
+          description: Invalid trust tier or reason
+        '401':
+          description: Admin authentication required
+        '404':
+          description: Issuer not found
+  /v1/profiles/{subjectId}/reputation:
+    get:
+      summary: Retrieve an experimental attestation-based reputation projection
+      parameters:
+        - name: subjectId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^wallet:-3:0:[a-fA-F0-9]{64}$' }
+      responses:
+        '200':
+          description: Versioned reputation projection with dimensions, evidence coverage and limitations
+        '400':
+          description: Invalid subject identifier
 components:
   securitySchemes:
     AdminBearer:

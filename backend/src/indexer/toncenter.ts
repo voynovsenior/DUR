@@ -201,7 +201,7 @@ export class TonCenterIndexer {
     const envStart = process.env.INDEXER_START_SEQNO?.trim();
     const configuredStart = startSeqno ?? (envStart ? Number(envStart) : undefined);
     const next = current ? current.seqno + 1 : configuredStart;
-    if (!Number.isSafeInteger(next) || next < 0) throw new Error('indexer_start_seqno_required');
+    if (next === undefined || !Number.isSafeInteger(next) || next < 0) throw new Error('indexer_start_seqno_required');
     const results = [];
     for (let seqno = next; seqno <= latest.seqno && results.length < maxBlocks; seqno++) {
       results.push(await this.ingestMasterchainBlock(store, seqno));

@@ -1,12 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculateReputation } from "../src/reputation/engine";
+import { calculateReputation, type ReputationEvidence } from "../src/reputation/engine";
 
 const now = 2_000_000_000;
 const claim = (reliability: number) => ({
   reputation: { dimensions: { reliability, delivery: 80, communication: 70, disputeResolution: 60 } },
 });
-const item = (overrides: Record<string, unknown> = {}) => ({
+const item = (overrides: Partial<ReputationEvidence> = {}): ReputationEvidence => ({
   id: "a1",
   issuerId: "issuer-a",
   schemaId: "marketplace.v1",

@@ -19,7 +19,9 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - name: Report dependency audit findings
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Report full dependency audit findings
         run: npm audit --json > /tmp/dur-npm-audit.json || true; node -e "const a=require('/tmp/dur-npm-audit.json'); console.log(JSON.stringify(a.vulnerabilities ?? {}, null, 2))"
       - run: npm run build
       - run: npm test

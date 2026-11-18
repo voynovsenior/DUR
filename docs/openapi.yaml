@@ -249,7 +249,9 @@ paths:
           description: Issuer not found
   /v1/profiles/{subjectId}/reputation:
     get:
-      summary: Retrieve an experimental attestation-based reputation projection
+      summary: Retrieve the caller's experimental reputation projection for a linked wallet
+      security:
+        - SessionCookie: []
       parameters:
         - name: subjectId
           in: path
@@ -260,6 +262,10 @@ paths:
           description: Versioned reputation projection with dimensions, evidence coverage and limitations
         '400':
           description: Invalid subject identifier
+        '401':
+          description: Telegram session required
+        '403':
+          description: Subject wallet is not linked to the authenticated account
 components:
   securitySchemes:
     AdminBearer:

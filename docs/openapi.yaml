@@ -40,7 +40,7 @@ paths:
                   capabilities:
                     type: object
                     properties:
-                      reputation: { type: string, const: experimental_attestation_projection_v0.1 }
+                      reputation: { type: string, const: experimental_attestation_projection_v0.2 }
                       attestations: { type: string, const: issuer_registry_available }
                       escrow: { type: string, const: not_implemented }
                       chainIndexing: { type: string, const: manual_testnet_sync_available }
@@ -278,6 +278,67 @@ paths:
           description: Proof verifier binary is not configured
         '504':
           description: Proof verifier timed out
+  /v1/admin/disputes:
+    get:
+      summary: List the authenticated administrator's dispute review queue
+      security:
+        - AdminBearer: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, upheld, rejected] }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Filtered dispute queue, newest first
+        '401':
+          description: Admin authentication required
+  /v1/auth/profile-visibility:
+    get:
+      summary: List the authenticated user's public-profile visibility consents
+      security:
+        - SessionCookie: []
+      responses:
+        '200':
+          description: Visibility consents owned by the current account
+        '401':
+          description: Telegram session required
+    post:
+      summary: Grant time-limited public reputation-profile visibility for a linked wallet
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [walletAddress]
+              properties:
+                walletAddress: { type: string }
+                expiresAt: { type: integer }
+      responses:
+        '201':
+          description: Public visibility consent created
+        '403':
+          description: Wallet is not linked to the authenticated account
+  /v1/auth/profile-visibility/{id}/revoke:
+    post:
+      summary: Revoke a public-profile visibility consent
+      security:
+        - SessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Visibility consent revoked
+        '404':
+          description: Consent not found or already revoked
   /v1/profiles/{subjectId}/reputation:
     get:
       summary: Retrieve the caller's experimental reputation projection for a linked wallet
@@ -290,7 +351,30 @@ paths:
           schema: { type: string, pattern: '^wallet:-3:0:[a-fA-F0-9]{64}$' }
       responses:
         '200':
-          description: Versioned reputation projection with dimensions, evidence coverage and limitations
+          description: Versioned reputation projection with evidence coverage and issuer-concentration diagnostics
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [subjectId, reputation]
+                properties:
+                  subjectId: { type: string }
+                  reputation:
+                    type: object
+                    required: [methodologyVersion, computedAt, dimensions, eligibleEvidenceCount, eligibleIssuerCount, limitations]
+                    properties:
+                      methodologyVersion: { type: string, const: "0.2.0" }
+                      computedAt: { type: integer }
+                      eligibleEvidenceCount: { type: integer }
+                      eligibleIssuerCount: { type: integer }
+                      limitations: { type: array, items: { type: string } }
+                      dimensions:
+                        type: object
+                        properties:
+                          reliability: { $ref: "#/components/schemas/ReputationDimension" }
+                          delivery: { $ref: "#/components/schemas/ReputationDimension" }
+                          communication: { $ref: "#/components/schemas/ReputationDimension" }
+                          disputeResolution: { $ref: "#/components/schemas/ReputationDimension" }
         '400':
           description: Invalid subject identifier
         '401':
@@ -367,6 +451,16 @@ paths:
         '404':
           description: Dispute not found
 components:
+  schemas:
+    ReputationDimension:
+      type: object
+      required: [value, evidenceCount, issuerCount, issuerConcentrationIndex, largestIssuerShare]
+      properties:
+        value: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        evidenceCount: { type: integer, minimum: 0 }
+        issuerCount: { type: integer, minimum: 0 }
+        issuerConcentrationIndex: { type: [number, 'null'], minimum: 0, maximum: 1 }
+        largestIssuerShare: { type: [number, 'null'], minimum: 0, maximum: 1 }
   securitySchemes:
     AdminBearer:
       type: http

@@ -330,5 +330,22 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+  const proofEventDetailsMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 11').get();
+  if (!proofEventDetailsMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        ALTER TABLE chain_event_transaction_proofs
+          ADD COLUMN current_account_code_hash TEXT;
+        ALTER TABLE chain_event_transaction_proofs
+          ADD COLUMN observed_events_json TEXT NOT NULL DEFAULT '[]';
+        ALTER TABLE chain_event_transaction_proofs
+          ADD COLUMN event_decode_errors_json TEXT NOT NULL DEFAULT '[]';
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (11, ?)')
+        .run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

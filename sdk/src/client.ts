@@ -26,6 +26,25 @@ export type AttestationEvent = {
   reason: string | null;
 };
 
+export type IssuerDirectoryEntry = {
+  id: string;
+  displayName: string;
+  issuerType: string;
+  policyVersion: number;
+  trustTier: ReputationTrustTier;
+};
+
+export type AttestationSchemaSummary = {
+  schemaId: string;
+  schemaVersion: number;
+  status: 'active' | 'deprecated';
+  createdAt: number;
+};
+
+export type RegisteredAttestationSchema = AttestationSchemaSummary & {
+  schema: Record<string, JsonValue>;
+};
+
 function normalizeApiBaseUrl(value: string): string {
   const baseUrl = value.trim().replace(/\/+$/, "");
   let parsed: URL;
@@ -110,6 +129,21 @@ export class DurIssuerClient {
 
   revokeApiKey() {
     return this.request<{ revoked: true }>('/v1/issuers/me/revoke-key', { method: 'POST' });
+  }
+
+  listIssuers() {
+    return this.request<{ issuers: IssuerDirectoryEntry[] }>('/v1/issuers');
+  }
+
+  listSchemas() {
+    return this.request<{ schemas: AttestationSchemaSummary[] }>('/v1/schemas');
+  }
+
+  getSchema(schemaId: string, version: number) {
+    if (!Number.isSafeInteger(version) || version < 1) throw new Error('invalid_schema_version');
+    return this.request<RegisteredAttestationSchema>(
+      `/v1/schemas/${encodeURIComponent(schemaId)}/${version}`,
+    );
   }
 }
 

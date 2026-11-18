@@ -18,19 +18,22 @@ enum Errors {
     InvalidResolution = 1006
 }
 
-struct Storage {
+struct ExtraFields {
     dealId: uint64
-    buyer: address
-    seller: address
-    arbiter: address
-    amount: coins
-    fundingReserve: coins
     termsHash: uint256
     fundingDeadline: uint32
     completionDeadline: uint32
     disputeDeadline: uint32
+}
+
+struct Storage {
+    buyer: address
+    seller: address
+    arbiter: address
+    amount: coins
     state: EscrowState
     completionMarked: bool
+    extra: cell
 }
 
 fun Storage.load(): Storage {

@@ -2,6 +2,8 @@
 
 Status: experimental Tolk contract prototype. Acton compilation, formatting/linting and eight emulator tests pass. The contract is not deployed, has not undergone an independent audit, and is not approved for real funds. Any deployment consideration is Testnet-only.
 
+See [Escrow Threat Model](ESCROW_THREAT_MODEL.md) for the current threat register, payout/bounce risk, arbiter-availability risk, required invariants and release gates. The threat model is a maintainer draft, not an audit.
+
 ## 1. Design boundary
 
 Escrow must be independently usable. Reputation may consume verified completed-deal events, but an escrow contract must not depend on the reputation engine to release or refund funds.

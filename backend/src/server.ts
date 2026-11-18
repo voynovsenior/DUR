@@ -472,11 +472,17 @@ export function createApiServer(options: ApiOptions = {}) {
           txHash: event.txHash,
           maxScan: body?.maxScan as number | undefined,
         });
-        if (!proof.verified) {
+        if (!proof.verified || proof.masterchainSeqno === undefined ||
+            !proof.masterchainRootHash || !proof.verifierVersion) {
           send(res, 422, { error: proof.reason ?? 'transaction_not_verified', proof, requestId });
           return;
         }
-        const recorded = chainEvents.markTransactionVerified(event.id, proof);
+        const recorded = chainEvents.markTransactionVerified(event.id, {
+          ...proof,
+          masterchainSeqno: proof.masterchainSeqno,
+          masterchainRootHash: proof.masterchainRootHash,
+          verifierVersion: proof.verifierVersion,
+        });
         if (!recorded) {
           send(res, 404, { error: 'indexer_event_not_found', requestId });
           return;

@@ -429,3 +429,41 @@ get fun `test only the buyer or seller can submit a mutual dispute vote`() {
     });
     expect(contract.currentState()).toEqual(EscrowState.Disputed);
 }
+
+
+get fun `test no-vote value is rejected during an active dispute`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    contract.sendOpenDispute(buyer.address, { value: grams("0.1") });
+
+    val invalidVote = contract.sendVoteResolution(
+        buyer.address,
+        ResolutionVote.NoVote,
+        { value: grams("0.1") },
+    );
+    expect(invalidVote).toHaveFailedTx({
+        from: buyer.address,
+        to: contract.address,
+        exitCode: Errors.InvalidResolution,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Disputed);
+}
+
+get fun `test mutual resolution vote is unavailable before a dispute`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+
+    val vote = contract.sendVoteResolution(
+        buyer.address,
+        ResolutionVote.ReleaseToSeller,
+        { value: grams("0.1") },
+    );
+    expect(vote).toHaveFailedTx({
+        from: buyer.address,
+        to: contract.address,
+        exitCode: Errors.InvalidState,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Funded);
+}

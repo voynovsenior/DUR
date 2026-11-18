@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { createApiServer } from '../src/server';
 import { openDatabase } from '../src/identity/database';
+import { AttestationRegistry } from '../src/attestations/registry';
 
 const token = '123456:LOCAL_TEST_TOKEN';
 const now = Math.floor(Date.now() / 1000);
@@ -315,5 +316,57 @@ test('Telegram login applies a per-IP fixed-window rate limit', async () => {
     assert.equal(responses[9].status, 400);
     assert.equal(responses[10].status, 429);
     assert.ok(Number(responses[10].headers.get('retry-after')) > 0);
+  });
+});
+
+test('admin trust review enables an explainable public reputation projection', async () => {
+  await withServer(async (base, db) => {
+    const createdResponse = await fetch(`${base}/v1/admin/issuers`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer unit-test-admin-value' },
+      body: JSON.stringify({ displayName: 'Reviewed Marketplace', issuerType: 'marketplace' }),
+    });
+    assert.equal(createdResponse.status, 201);
+    const created = await createdResponse.json() as { issuer: { id: string } };
+
+    const tierResponse = await fetch(`${base}/v1/admin/issuers/${created.issuer.id}/trust-tier`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer unit-test-admin-value' },
+      body: JSON.stringify({ trustTier: 'verified', reason: 'Manual issuer policy review completed' }),
+    });
+    assert.equal(tierResponse.status, 200);
+
+    const registry = new AttestationRegistry(db);
+    const subjectId = `wallet:-3:0:${'a'.repeat(64)}`;
+    registry.issue(created.issuer.id, {
+      schemaId: 'dur.reputation.sample',
+      schemaVersion: 1,
+      subjectId,
+      claim: { reputation: { dimensions: { reliability: 92, delivery: 88 } } },
+      evidenceRefs: ['https://example.org/evidence/1'],
+    });
+
+    const profile = await fetch(`${base}/v1/profiles/${subjectId}/reputation`);
+    assert.equal(profile.status, 200);
+    const body = await profile.json() as {
+      subjectId: string;
+      reputation: {
+        methodologyVersion: string;
+        dimensions: {
+          reliability: { value: number | null; evidenceCount: number };
+          delivery: { value: number | null };
+          communication: { value: number | null };
+        };
+      };
+    };
+    assert.equal(body.subjectId, subjectId);
+    assert.equal(body.reputation.methodologyVersion, '0.1.0');
+    assert.equal(body.reputation.dimensions.reliability.value, 92);
+    assert.equal(body.reputation.dimensions.reliability.evidenceCount, 1);
+    assert.equal(body.reputation.dimensions.delivery.value, 88);
+    assert.equal(body.reputation.dimensions.communication.value, null);
+
+    const invalid = await fetch(`${base}/v1/profiles/not-a-wallet/reputation`);
+    assert.equal(invalid.status, 400);
   });
 });

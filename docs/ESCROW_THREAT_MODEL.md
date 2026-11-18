@@ -90,12 +90,15 @@ Assumptions:
 
 ### E-04 — Funding and accounting mismatch
 
-**Observed in prototype:** `Fund` requires the inbound value to equal the stored amount.
+**Observed in prototype:** `Fund` requires the inbound value to equal the stored amount. Payouts send `value: amount` with `SEND_MODE_REGULAR` (mode 0).
 
-**Risk:** assumptions about inbound value, forwarding fees, contract reserve and send fees may not match real execution. A contract that accepts exact funding but lacks a separately budgeted reserve may be unable to complete later actions.
+**Protocol fact checked against TON documentation:** in regular mode, forwarding fees are deducted from the outgoing message value. Therefore, the recipient does not receive the full stored `amount` under the current payout helper; the difference is the applicable forwarding fee. `SEND_MODE_PAY_FEES_SEPARATELY` (+1) instead charges forwarding fees separately from the contract balance. See the official [TON sending-mode reference](https://docs.ton.org/foundations/messages/modes).
+
+**Risk:** the current contract does not define whether `amount` means gross message value or exact net principal. The contract reserve, deployment funding, storage rent, compute fees and forwarding fees are not separately specified. A contract that accepts exact funding but lacks a separately budgeted reserve may be unable to complete later actions or may underpay the recipient.
 
 **Required controls:**
-- define whether the escrow amount includes or excludes fees;
+- define whether the escrow amount is gross value or exact net principal;
+- choose and test fee treatment (`SEND_MODE_REGULAR` versus separate-fee mode) so the recipient amount matches the agreement;
 - account for storage rent, compute fees, forwarding fees and deployment reserve;
 - test exact, underfunded and overfunded messages;
 - prove that no transition can release more than the outstanding liability.

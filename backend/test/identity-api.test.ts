@@ -381,7 +381,9 @@ test('admin trust review enables an owner-only reputation projection', async () 
       };
     };
     assert.equal(body.subjectId, subjectId);
-    assert.equal(body.reputation.methodologyVersion, '0.1.0');
+    assert.equal(body.reputation.methodologyVersion, '0.2.0');
+    assert.equal(typeof body.reputation.dimensions.reliability.issuerConcentrationIndex, 'number');
+    assert.equal(typeof body.reputation.dimensions.reliability.largestIssuerShare, 'number');
     assert.equal(body.reputation.dimensions.reliability.value, 92);
     assert.equal(body.reputation.dimensions.reliability.evidenceCount, 1);
     assert.equal(body.reputation.dimensions.delivery.value, 88);

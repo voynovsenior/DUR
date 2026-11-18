@@ -34,6 +34,8 @@ struct Storage {
     amount: coins
     state: EscrowState
     completionMarked: bool
+    buyerVote: ResolutionVote
+    sellerVote: ResolutionVote
     extra: cell
 }
 
@@ -55,8 +57,18 @@ struct (0x44555204) ApproveRelease {}
 
 struct (0x44555205) OpenDispute {}
 
+enum ResolutionVote {
+    NoVote = 0
+    ReleaseToSeller = 1
+    RefundToBuyer = 2
+}
+
 struct (0x44555206) ResolveDispute {
     paySeller: bool
+}
+
+struct (0x4455520A) VoteResolution {
+    decision: ResolutionVote
 }
 
 struct (0x44555207) Refund {}
@@ -72,6 +84,7 @@ type AllowedMessage =
     | ApproveRelease
     | OpenDispute
     | ResolveDispute
+    | VoteResolution
     | Refund
     | Cancel
     | ClaimAfterDeadline

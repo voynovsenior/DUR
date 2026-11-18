@@ -667,7 +667,8 @@ export function createApiServer(options: ApiOptions = {}) {
         send(res, 201, { dispute });
       } catch (error) {
         const code = error instanceof Error ? error.message : 'dispute_open_failed';
-        send(res, 400, { error: code, requestId });
+        const status = code === 'dispute_already_open' || code === 'attestation_dispute_already_upheld' ? 409 : 400;
+        send(res, status, { error: code, requestId });
       }
       return;
     }

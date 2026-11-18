@@ -40,9 +40,10 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] TON Center API v3 Testnet ingestion adapter; imported provider records remain unverified
 - [x] Bounded one-shot sync and continuous worker with checkpoint resume and retry/backoff
 - [x] Separate Go transaction proof verifier using a Testnet trust anchor and secure proof policy
-- [x] Admin API integration that stores transaction-proof provenance
-- [ ] Contract-specific event decoders with code-hash allowlists and versioned schemas
-- [ ] Semantic verification policy: a proved transaction must not automatically become a verified DUR business event
+- [x] Admin API integration that stores transaction-proof provenance and decoded v1 escrow event observations
+- [x] Versioned v1 escrow lifecycle-event decoder in the proof verifier, extracting events from proof-verified transactions
+- [ ] Contract address/code-hash allowlists and historical code-identity verification
+- [ ] Semantic verification policy: a proved transaction/event must not automatically become a verified DUR business event
 - [ ] End-to-end fixtures for supported contract versions, reorg/provider disagreement and recovery
 - [ ] Independent review of proof-verifier trust-anchor and operational assumptions
 
@@ -51,14 +52,15 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] Modular escrow lifecycle specification
 - [x] Pure state-transition model and validation tests
 - [x] Experimental Tolk contract prototype
-- [x] Acton build, formatting/linting and 21 emulator tests, including deadline and bilateral dispute-vote cases
+- [x] Acton build, formatting/linting and 24 emulator tests, including deadline, bilateral dispute-vote and lifecycle-event cases
 - [x] Draft escrow threat model and release-gate register
 - [x] Bilateral dispute-resolution votes; conflicting votes remain disputed and the arbiter retains override authority
 - [ ] Complete enforceable invariants and independent threat-model review
 - [ ] Property-based conservation and terminal-state tests
 - [ ] Adversarial tests for replay, malformed messages, timing boundaries, bounce and gas behavior
 - [ ] Resolve arbiter-unavailable / indefinite-dispute-lock risk
-- [ ] Explicit versioned contract event emission and decoder fixtures
+- [x] Explicit versioned external lifecycle-event emission and proof-verifier decoder fixtures
+- [ ] Contract identity allowlist and semantic event-verification policy
 - [ ] Testnet deployment and end-to-end integration; no real funds
 - [ ] Independent contract security review before any Mainnet consideration
 

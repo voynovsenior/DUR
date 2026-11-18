@@ -21,7 +21,7 @@ const batch: IndexerBatch = {
     sourceContract: '0:' + '2'.repeat(64),
     sourceCodeHash: 'd'.repeat(64),
     decoderVersion: 'fixture-v1',
-    verificationStatus: 'verified',
+    verificationStatus: 'unverified',
   }],
 };
 
@@ -90,5 +90,68 @@ test('indexer store rejects non-canonical addresses and out-of-range logical tim
     ...batch,
     events: [{ ...batch.events[0], lt: '18446744073709551616' }],
   }), /invalid_event_lt/);
+  db.close();
+});
+
+test('indexer store records secure transaction proofs without promoting semantic event status', () => {
+  const { db, store } = setup();
+  store.ingest(batch);
+  const event = store.listEvents({ network: 'ton-testnet' })[0];
+  const proof = {
+    verified: true,
+    network: 'testnet',
+    address: event.account,
+    transactionLt: event.lt,
+    transactionHash: event.txHash,
+    masterchainSeqno: 200,
+    masterchainRootHash: 'e'.repeat(64),
+    proofPolicy: 'secure',
+    verifierVersion: '0.1.0',
+  };
+  assert.equal(store.markTransactionVerified(String(event.id), proof, 1_800_000_100), true);
+  const listed = store.listEvents({ network: 'ton-testnet' })[0] as typeof event & {
+    transactionProof: { network: string; masterchainSeqno: number; proofPolicy: string } | null;
+  };
+  assert.equal(listed.verificationStatus, 'unverified');
+  assert.equal(listed.transactionProof?.network, 'ton-testnet');
+  assert.equal(listed.transactionProof?.masterchainSeqno, 200);
+  assert.equal(listed.transactionProof?.proofPolicy, 'secure');
+  db.close();
+});
+
+test('indexer store rejects proof results that do not match the stored transaction', () => {
+  const { db, store } = setup();
+  store.ingest(batch);
+  const event = store.listEvents({ network: 'ton-testnet' })[0];
+  assert.throws(() => store.markTransactionVerified(String(event.id), {
+    verified: true,
+    network: 'testnet',
+    address: event.account,
+    transactionLt: event.lt,
+    transactionHash: 'f'.repeat(64),
+    masterchainSeqno: 200,
+    masterchainRootHash: 'e'.repeat(64),
+    proofPolicy: 'secure',
+    verifierVersion: '0.1.0',
+  }), /transaction_proof_event_mismatch/);
+  db.close();
+});
+
+test('indexer store does not attach transaction proofs to quarantined events', () => {
+  const { db, store } = setup();
+  store.ingest(batch);
+  const event = store.listEvents({ network: 'ton-testnet' })[0];
+  store.quarantine(String(event.id), 'Manual review required');
+  assert.throws(() => store.markTransactionVerified(String(event.id), {
+    verified: true,
+    network: 'testnet',
+    address: event.account,
+    transactionLt: event.lt,
+    transactionHash: event.txHash,
+    masterchainSeqno: 200,
+    masterchainRootHash: 'e'.repeat(64),
+    proofPolicy: 'secure',
+    verifierVersion: '0.1.0',
+  }), /event_quarantined/);
   db.close();
 });

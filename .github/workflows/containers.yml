@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: containers-${{ github.ref }}
-  cancel-in-progress: true
+  group: containers-${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
 
 permissions: {}
 

@@ -57,6 +57,7 @@ struct (0x44555205) OpenDispute {}
 struct (0x44555206) ResolveDispute {
     paySeller: bool
 }
+
 struct (0x44555207) Refund {}
 
 struct (0x44555208) Cancel {}

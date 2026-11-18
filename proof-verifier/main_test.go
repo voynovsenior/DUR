@@ -103,6 +103,51 @@ func TestParseEscrowLifecycleEvent(t *testing.T) {
 }
 
 
+
+func TestValidateEscrowLifecycleEventAcceptsDocumentedTransitions(t *testing.T) {
+	base := escrowLifecycleEvent{
+		SchemaVersion: 1,
+		DealID: "42",
+		EventSequence: 1,
+		Actor: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Counterparty: "0:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		TermsHash: strings.Repeat("c", 64),
+	}
+	cases := []struct {
+		name string
+		eventType string
+		previous string
+		next string
+		decision string
+	}{
+		{"accepted", "accepted", "created", "accepted", "none"},
+		{"funded", "funded", "accepted", "funded", "none"},
+		{"completion", "completion_marked", "funded", "funded", "none"},
+		{"dispute opened", "dispute_opened", "funded", "disputed", "none"},
+		{"dispute vote", "dispute_vote_recorded", "disputed", "disputed", "refund_to_buyer"},
+		{"mutual release", "mutual_dispute_resolved", "disputed", "released", "release_to_seller"},
+		{"mutual refund", "mutual_dispute_resolved", "disputed", "refunded", "refund_to_buyer"},
+		{"arbiter release", "arbiter_dispute_resolved", "disputed", "released", "release_to_seller"},
+		{"arbiter refund", "arbiter_dispute_resolved", "disputed", "refunded", "refund_to_buyer"},
+		{"release", "released", "funded", "released", "release_to_seller"},
+		{"refund", "refunded", "funded", "refunded", "refund_to_buyer"},
+		{"cancel created", "cancelled", "created", "cancelled", "none"},
+		{"cancel accepted", "cancelled", "accepted", "cancelled", "none"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			event := base
+			event.EventType = tc.eventType
+			event.PreviousState = tc.previous
+			event.NewState = tc.next
+			event.Decision = tc.decision
+			if err := validateEscrowLifecycleEvent(event); err != nil {
+				t.Fatalf("expected valid transition, got %v", err)
+			}
+		})
+	}
+}
+
 func TestValidateEscrowLifecycleEventRejectsImpossibleTransition(t *testing.T) {
 	event := escrowLifecycleEvent{
 		SchemaVersion: 1,

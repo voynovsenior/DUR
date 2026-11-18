@@ -10,7 +10,7 @@ Status: manual Testnet ingestion, durable event storage, and a separate secure t
 - The adapter is Testnet-only. It deliberately marks every imported transaction `unverified`, because the indexed HTTP response is not itself a cryptographic proof. No reputation calculation consumes these rows.
 - `proof-verifier/` is a Go CLI built on `tonutils-go` with `ProofCheckPolicySecure`, a Testnet global-config trust anchor, masterchain proof-chain checks, account-state proof checks, and transaction hash-chain verification from the proved account state.
 - `POST /v1/admin/indexer/events/{id}/verify-transaction` runs the verifier for a stored event. Configure `DUR_PROOF_VERIFIER_BIN` to the built binary. The endpoint stores proof provenance but deliberately leaves `verificationStatus` as `unverified`.
-- The verifier is Testnet-only. It verifies that a transaction belongs to the authenticated account history; it does not prove that a decoded application-level claim is correct.
+- The verifier is Testnet-only. It verifies that a transaction belongs to the authenticated account history; it does not prove that a decoded application-level claim is correct. The database stores a compact verification receipt (trusted masterchain root, sequence number, verifier version and timestamp), not the raw proof BOCs; verification can be independently re-run against the liteserver.
 
 ## 2. Trust model
 

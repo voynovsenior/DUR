@@ -52,6 +52,43 @@ export class AttestationRegistry {
     return transaction();
   }
 
+  listForSubject(subjectId: string, nowSeconds = Math.floor(Date.now() / 1000)) {
+    const rows = this.db.prepare(`
+      SELECT a.id, a.schema_id AS schemaId, a.schema_version AS schemaVersion,
+             a.issuer_id AS issuerId, i.display_name AS issuerName,
+             i.trust_tier AS issuerTrustTier, i.status AS issuerStatus,
+             a.subject_id AS subjectId, a.claim_json AS claimJson,
+             a.claim_digest AS claimDigest, a.evidence_refs_json AS evidenceRefsJson,
+             a.issued_at AS issuedAt, a.expires_at AS expiresAt,
+             CASE
+               WHEN a.status != 'active' THEN a.status
+               WHEN a.expires_at IS NOT NULL AND a.expires_at <= ? THEN 'expired'
+               WHEN EXISTS (
+                 SELECT 1 FROM attestation_disputes d
+                 WHERE d.attestation_id = a.id AND d.status IN ('open', 'upheld')
+               ) THEN 'disputed'
+               ELSE 'active'
+             END AS status
+      FROM attestations a
+      JOIN issuers i ON i.id = a.issuer_id
+      WHERE a.subject_id = ?
+      ORDER BY a.issued_at DESC, a.id DESC
+      LIMIT 100
+    `).all(nowSeconds, subjectId) as Array<{
+      id: string; schemaId: string; schemaVersion: number; issuerId: string;
+      issuerName: string; issuerTrustTier: string; issuerStatus: string;
+      subjectId: string; claimJson: string; claimDigest: string;
+      evidenceRefsJson: string; issuedAt: number; expiresAt: number | null;
+      status: string;
+    }>;
+
+    return rows.map(({ claimJson, evidenceRefsJson, ...row }) => ({
+      ...row,
+      claim: JSON.parse(claimJson) as Record<string, unknown>,
+      evidenceRefs: JSON.parse(evidenceRefsJson) as string[],
+    }));
+  }
+
   listReputationEvidence(subjectId: string, nowSeconds = Math.floor(Date.now() / 1000)) {
     const rows = this.db.prepare(`
       SELECT a.id, a.issuer_id AS issuerId, a.schema_id AS schemaId,

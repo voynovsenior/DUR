@@ -39,3 +39,7 @@ This document describes design requirements; it is not an audit report. The curr
 ## Testnet proof-verifier boundary
 
 The optional Go proof verifier uses a Testnet trust anchor and secure proof-check policy. It never enables Mainnet verification. A successful check establishes account-history membership for a transaction, not application semantics. The API persists a compact verification receipt rather than raw proof BOCs; operators should be able to re-run verification against the Testnet liteserver before relying on old receipts. The verifier must remain disabled if its binary is missing or its trust configuration cannot be loaded.
+
+## Dependency audit status
+
+The CI pipeline fails if the production dependency tree contains high-severity npm advisories. The current production audit reports zero vulnerabilities. The full development-tooling audit still reports the upstream `picomatch` ReDoS advisory (GHSA-fc5q-39xc-vjpf) through Vite's build dependency tree; the registry version available in this environment remains 4.0.7, which is within the advisory's affected range. This is a development/build-time dependency, not shipped in the Mini App runtime. Do not expose the Vite development server to untrusted networks. Re-run the full audit and remove this note once an upstream fixed release is available and adopted.

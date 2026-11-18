@@ -35,3 +35,7 @@ This document describes design requirements; it is not an audit report. The curr
 - Do not treat frontend checks as security controls.
 - Do not claim an event is verified unless its source and verification procedure are recorded. TON Center API v3 imports are explicitly marked unverified.
 - Do not deploy real-value escrow without complete review and independent audit.
+
+## Testnet proof-verifier boundary
+
+The optional Go proof verifier uses a Testnet trust anchor and secure proof-check policy. It never enables Mainnet verification. A successful check establishes account-history membership for a transaction, not application semantics. The API persists a compact verification receipt rather than raw proof BOCs; operators should be able to re-run verification against the Testnet liteserver before relying on old receipts. The verifier must remain disabled if its binary is missing or its trust configuration cannot be loaded.

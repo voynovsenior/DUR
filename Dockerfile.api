@@ -1,8 +1,7 @@
 FROM golang:1.26-bookworm AS proof-build
 WORKDIR /src/proof-verifier
-COPY proof-verifier/go.mod ./
-RUN go mod download
 COPY proof-verifier/ ./
+RUN go mod tidy
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/dur-proof-verifier .
 
 FROM node:20-bookworm-slim AS runtime

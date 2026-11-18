@@ -1,12 +1,13 @@
 # TON Indexer and Verifier — Architecture Draft
 
-Status: manual Testnet ingestion, durable event storage, and a separate secure transaction proof verifier are implemented. TON Center API v3 imports remain `unverified` until the admin verification endpoint checks the transaction against a trusted Testnet masterchain/account history. Transaction verification does not yet decode or validate DUR contract event semantics.
+Status: manual and continuous Testnet ingestion, durable event storage, and a separate secure transaction proof verifier are implemented. TON Center API v3 imports remain `unverified` until the admin verification endpoint checks the transaction against a trusted Testnet masterchain/account history. Transaction verification does not yet decode or validate DUR contract event semantics.
 
 ## 1. Current implementation
 
 - `backend/src/indexer/toncenter.ts` reads `masterchainInfo`, resolves a masterchain block, and fetches its transactions through TON Center API v3.
 - `backend/src/indexer/event-store.ts` stores normalized transaction records idempotently and advances a durable checkpoint in the same SQLite transaction.
 - `npm run indexer:sync` performs a bounded one-shot sync. Configure `TONCENTER_API_URL`, optional `TONCENTER_API_KEY`, `INDEXER_START_SEQNO` for the first run, and `INDEXER_MAX_BLOCKS`.
+- `npm run indexer:worker` continuously polls the Testnet masterchain, resumes from the durable checkpoint after restarts, processes bounded batches, waits between batches, and backs off after provider errors. Configure `INDEXER_POLL_INTERVAL_MS`, `INDEXER_BATCH_DELAY_MS`, and `INDEXER_MAX_BLOCKS`. It stops cleanly on SIGINT/SIGTERM.
 - The adapter is Testnet-only. It deliberately marks every imported transaction `unverified`, because the indexed HTTP response is not itself a cryptographic proof. No reputation calculation consumes these rows.
 - `proof-verifier/` is a Go CLI built on `tonutils-go` with `ProofCheckPolicySecure`, a Testnet global-config trust anchor, masterchain proof-chain checks, account-state proof checks, and transaction hash-chain verification from the proved account state.
 - `POST /v1/admin/indexer/events/{id}/verify-transaction` runs the verifier for a stored event. Configure `DUR_PROOF_VERIFIER_BIN` to the built binary. The endpoint stores proof provenance but deliberately leaves `verificationStatus` as `unverified`.

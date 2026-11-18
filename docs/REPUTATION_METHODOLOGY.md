@@ -38,7 +38,7 @@ Recency weight uses a 180-day half-life:
 
 `recencyWeight = 0.5 ^ (ageSeconds / (180 * 24 * 60 * 60))`
 
-For each issuer/schema pair, only the latest eligible attestation is retained. This prevents repeated updates by one issuer under one schema from multiplying its evidence count.
+For each issuer/schema pair, the newest attestation record is selected before eligibility filtering. A newer revoked, expired, or disputed record suppresses older active records rather than allowing them to reappear. Only after selecting the latest record are status, expiry, issuer tier, and claim validity checked. This prevents repeated updates by one issuer under one schema from multiplying its evidence count or bypassing revocation.
 
 Each dimension is a weighted arithmetic mean:
 

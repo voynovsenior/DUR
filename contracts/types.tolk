@@ -37,23 +37,30 @@ struct Storage {
 }
 
 fun Storage.load(): Storage {
-    return Storage.fromCell(contract.getData())
+    return Storage.fromCell(contract.getData());
 }
 
 fun Storage.save(self) {
-    contract.setData(self.toCell())
+    contract.setData(self.toCell());
 }
 
 struct (0x44555201) Accept {}
+
 struct (0x44555202) Fund {}
+
 struct (0x44555203) MarkComplete {}
+
 struct (0x44555204) ApproveRelease {}
+
 struct (0x44555205) OpenDispute {}
+
 struct (0x44555206) ResolveDispute {
     paySeller: bool
 }
 struct (0x44555207) Refund {}
+
 struct (0x44555208) Cancel {}
+
 struct (0x44555209) ClaimAfterDeadline {}
 
 type AllowedMessage =

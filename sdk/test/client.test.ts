@@ -29,6 +29,31 @@ test('issuer SDK sends authenticated JSON requests to the DUR API', async () => 
   assert.equal(new Headers(calls[0].init?.headers).get('content-type'), 'application/json');
 });
 
+test('issuer SDK discovers active issuers and versioned schemas', async () => {
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  const client = new DurIssuerClient({
+    baseUrl: 'https://api.example.com',
+    apiKey: 'dur_issuer_unit_test_key',
+    fetchImpl: async (input, init) => {
+      calls.push({ url: String(input), init });
+      return new Response(JSON.stringify({ issuers: [], schemas: [], schemaId: 'dur.delivery.completed' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+
+  await client.listIssuers();
+  await client.listSchemas();
+  await client.getSchema('dur.delivery.completed', 2);
+
+  assert.equal(calls[0].url, 'https://api.example.com/v1/issuers');
+  assert.equal(calls[1].url, 'https://api.example.com/v1/schemas');
+  assert.equal(calls[2].url, 'https://api.example.com/v1/schemas/dur.delivery.completed/2');
+  assert.equal(new Headers(calls[2].init?.headers).get('authorization'), 'Bearer dur_issuer_unit_test_key');
+  assert.throws(() => client.getSchema('dur.delivery.completed', 0), /invalid_schema_version/);
+});
+
 test('issuer SDK exposes machine-readable API errors', async () => {
   const client = new DurIssuerClient({
     baseUrl: 'https://api.example.com',

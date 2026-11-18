@@ -60,3 +60,34 @@ Telegram Serverless access is not assumed. If access becomes available, evaluate
 ## Build-tooling network boundary
 
 The production dependency audit is enforced in CI. The current full development audit still reports a Vite build-chain `picomatch` advisory without an available upstream patched release. Keep the Vite development server local-only; production deployments must serve the built static assets and must not run the Vite dev server.
+
+## Docker + Caddy Testnet deployment template
+
+The repository includes a containerized Testnet deployment template. It is not a Mainnet release configuration and does not deploy contracts.
+
+1. Provision a Linux host with Docker Engine and the Docker Compose plugin. Point the chosen domain's DNS A/AAAA records to that host and allow inbound TCP 80/443.
+2. Copy `.env.example` to `.env`. Set `APP_DOMAIN`, `MINI_APP_URL`, `CORS_ORIGIN`, `TON_APP_DOMAIN`, and `VITE_TONCONNECT_MANIFEST_URL` to the same HTTPS domain. Keep `VITE_API_BASE_URL` empty so the Mini App uses same-origin `/v1` requests through Caddy.
+3. Set `TELEGRAM_BOT_TOKEN` and `BOT_TOKEN` as server-side environment variables. Set a strong random `DUR_ADMIN_TOKEN`. Do not commit `.env`, bot tokens, admin tokens, wallet keys or seed phrases.
+4. Keep `COOKIE_SECURE=true`. The Compose network gives Caddy a fixed internal IP and the API trusts forwarded client IPs only from that allowlisted proxy. Do not broaden `TRUSTED_PROXY_IPS` to arbitrary networks.
+5. Build and start the API and HTTPS web frontend:
+
+```bash
+docker compose up -d --build api web
+docker compose logs -f api web
+```
+
+6. Start the Testnet indexer worker only after reviewing its starting checkpoint and provider limits:
+
+```bash
+docker compose --profile indexer up -d indexer
+```
+
+7. Start the Telegram bot only after setting its token and Mini App URL:
+
+```bash
+docker compose --profile telegram up -d bot
+```
+
+Caddy obtains and renews HTTPS certificates automatically when DNS and ports are configured correctly. The API and indexer share a persistent SQLite volume. The indexer remains Testnet-only; imported events remain ineligible for reputation until transaction proof and contract-specific semantic verification are completed.
+
+**Deployment boundary:** this template is for controlled Testnet QA only. The escrow contract has not undergone an independent audit, dispute resolution can lock a deal while an arbiter is unavailable, and payout/gas/bounce behavior still needs specialist review. Do not use real funds or Mainnet.

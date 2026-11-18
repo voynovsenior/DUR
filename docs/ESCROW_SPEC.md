@@ -1,6 +1,6 @@
 # DUR Modular Escrow — Testnet Specification Draft
 
-Status: experimental Tolk contract prototype. Acton compilation, formatting/linting and sixteen emulator tests pass (including deadline-boundary and terminal-replay cases). The contract is not deployed, has not undergone an independent audit, and is not approved for real funds. Any deployment consideration is Testnet-only.
+Status: experimental Tolk contract prototype v0.2.0. Acton compilation, formatting/linting and 21 emulator tests pass (including deadline-boundary, terminal-replay and bilateral dispute-vote cases). The contract is not deployed, has not undergone an independent audit, and is not approved for real funds. Any deployment consideration is Testnet-only.
 
 See [Escrow Threat Model](ESCROW_THREAT_MODEL.md) for the current threat register, payout/bounce risk, arbiter-availability risk, required invariants and release gates. The threat model is a maintainer draft, not an audit.
 

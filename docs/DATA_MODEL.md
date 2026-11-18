@@ -1,8 +1,6 @@
 # DUR data model
 
-The entities below define the protocol model. The backend includes a canonical claim helper and a persistent issuer/attestation registry with issuer API keys, issuance, expiry, revocation and event history. Subject-consent workflows and registered JSON Schema validation remain unimplemented.
-
-This document is a design proposal, not a deployed database schema. It defines conceptual entities for later review before migrations are written.
+The backend includes Telegram identity, TON wallet links, issuer attestations, consent grants, schema registry, Testnet event storage and an experimental reputation projection. The conceptual model below distinguishes implemented storage from derived data and remaining design work.
 
 ## Identity reference
 A DUR subject should be represented by a typed identifier, not by an assumption that one wallet equals one human.
@@ -28,7 +26,7 @@ Proposed fields:
 - `status`;
 - `created_at`.
 
-Trust tiers must be governed by explicit policies and must not be silently inferred from transaction volume.
+Trust tiers are changed through an admin-only endpoint that records the previous tier, new tier, actor label, reason and timestamp. Formal review policy and independent issuer verification remain pending; tiers must never be inferred from transaction volume.
 
 ## Attestation
 Represents a structured claim made by an issuer about a subject. Persistence, issuer-authenticated issuance, expiry, revocation and event history are implemented. Schema IDs and versions are immutable and backed by a persisted JSON Schema registry. Issuance is rejected unless the claim validates against the registered version. Wallet-owner consent is stored per linked wallet, issuer and schema version; owners can revoke it. Consent is checked before issuance.
@@ -63,9 +61,9 @@ Proposed fields:
 Events need deterministic identities and idempotent ingestion. Reprocessing the same chain event must not create additional reputation weight.
 
 ## Reputation projection
-A derived view over eligible evidence, not a source of truth.
+A derived view over eligible attestations, not a source of truth. The current experimental calculation is computed on demand and is not persisted. It returns methodology version, dimension values, evidence and issuer counts, computation time and limitations. It excludes raw indexer events until canonical proof verification and event decoding are implemented.
 
-Proposed fields:
+Conceptual fields:
 - `subject_id`;
 - `methodology_version`;
 - `dimension_values`;

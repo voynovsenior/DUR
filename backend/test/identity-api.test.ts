@@ -4,6 +4,7 @@ import { createHmac } from 'node:crypto';
 import { createApiServer } from '../src/server';
 import { openDatabase } from '../src/identity/database';
 import { AttestationRegistry } from '../src/attestations/registry';
+import { ChainEventStore } from '../src/indexer/event-store';
 
 const token = '123456:LOCAL_TEST_TOKEN';
 const now = Math.floor(Date.now() / 1000);
@@ -485,5 +486,54 @@ test('wallet owner can dispute attestations and reviewed outcomes control reputa
       body: JSON.stringify({ reason: 'Attempt to reopen an upheld dispute' }),
     });
     assert.equal(reopen.status, 409);
+  });
+});
+
+test('admin transaction verification endpoint fails closed when the proof binary is absent', async () => {
+  await withServer(async (base, db) => {
+    const store = new ChainEventStore(db);
+    store.ingest({
+      checkpoint: { network: 'ton-testnet', seqno: 300, rootHash: 'a'.repeat(64), fileHash: 'b'.repeat(64) },
+      events: [{
+        network: 'ton-testnet',
+        account: '0:' + 'e'.repeat(64),
+        lt: '456',
+        txHash: 'f'.repeat(64),
+        eventIndex: 0,
+        eventType: 'contract.event',
+        payload: {},
+        sourceContract: '0:' + 'd'.repeat(64),
+        decoderVersion: 'fixture-v1',
+        verificationStatus: 'unverified',
+      }],
+    });
+    const event = store.listEvents({ network: 'ton-testnet' })[0];
+    const url = `${base}/v1/admin/indexer/events/${event.id}/verify-transaction`;
+    const previous = process.env.DUR_PROOF_VERIFIER_BIN;
+    delete process.env.DUR_PROOF_VERIFIER_BIN;
+    try {
+      const unauthorized = await fetch(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      assert.equal(unauthorized.status, 401);
+
+      const unavailable = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: 'Bearer unit-test-admin-value',
+        },
+        body: JSON.stringify({}),
+      });
+      assert.equal(unavailable.status, 503);
+      const body = await unavailable.json() as { error: string };
+      assert.equal(body.error, 'proof_verifier_not_configured');
+      assert.equal(store.listEvents({ network: 'ton-testnet' })[0].transactionProof, null);
+    } finally {
+      if (previous === undefined) delete process.env.DUR_PROOF_VERIFIER_BIN;
+      else process.env.DUR_PROOF_VERIFIER_BIN = previous;
+    }
   });
 });

@@ -58,7 +58,9 @@ Only an administrator can change issuer trust tiers through the protected API. E
 - It does not include unverified indexer events.
 - A wallet is not proof of a unique human identity.
 - No score should be used as the sole basis for financial, access, moderation or eligibility decisions.
-- A dispute/correction workflow and calibration against reviewed datasets are still outstanding.
+- Open and upheld attestation disputes are excluded from reputation eligibility. A rejected dispute restores eligibility only if the attestation is otherwise active, unexpired, issued by an active eligible issuer, and wins the issuer/schema latest-record selection.
+- A newer disputed, revoked, or expired record suppresses older records from the same issuer/schema pair; filtering happens after latest-record selection to prevent resurrection.
+- Dispute opening and administrative resolution primitives are implemented. Independent review, a complete correction workflow, calibration against reviewed datasets, and abuse evaluation remain outstanding.
 
 ## 6. API
 

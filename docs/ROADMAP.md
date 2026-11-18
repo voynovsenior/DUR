@@ -67,7 +67,8 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] Subject SDK for owner/public-consented reputation queries, disputes and profile-visibility consent management
 - [x] Server-side issuer integration example and SDK onboarding guide
 - [ ] Public developer documentation portal
-- [ ] Operational dashboard and issuer review workflow
+- [x] Admin API and SDK for issuer lifecycle, trust-tier review and filtered dispute queue
+- [ ] Operational dashboard and reviewer-facing web interface
 
 ## Stage 6 — Testnet validation and release readiness
 

@@ -6,8 +6,8 @@ on:
     branches: [main]
   workflow_dispatch:
 concurrency:
-  group: dur-ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: dur-ci-${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:

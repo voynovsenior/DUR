@@ -1,6 +1,6 @@
 # DUR Modular Escrow — Testnet Specification Draft
 
-Status: experimental Tolk contract prototype, Acton build workflow, and off-chain state-transition model. The contract is not deployed and is not approved for real funds. Testnet-only validation is required before any deployment consideration.
+Status: experimental Tolk contract prototype. Acton compilation, formatting/linting and six emulator tests pass. The contract is not deployed, has not undergone an independent audit, and is not approved for real funds. Any deployment consideration is Testnet-only.
 
 ## 1. Design boundary
 
@@ -15,13 +15,12 @@ The first implementation target is TON Testnet. Mainnet and real-value use are e
 | Created | Terms and participants recorded; no funds accepted | Accepted, Cancelled |
 | Accepted | Counterparty accepted the exact terms | Funded, Cancelled |
 | Funded | Required value is confirmed in contract state | Released, Refunded, Disputed |
-| Disputed | A party raised a dispute within the permitted window | Resolved, Refunded |
+| Disputed | A party raised a dispute within the permitted window | Released, Refunded |
 | Released | Funds sent to the designated recipient | Terminal |
 | Refunded | Funds returned according to the agreed rules | Terminal |
-| Resolved | A dispute resolution action completed | Released, Refunded |
 | Cancelled | Agreement ended before funding | Terminal |
 
-The first Tolk prototype fixes the transitions and deadlines in contract storage. The terms and deadline fields are stored in a referenced cell to stay within TON's 1023-bit cell limit. The prototype supports seller acceptance, exact TON funding, seller completion, buyer approval, participant disputes, arbiter resolution, buyer refund after the dispute window when completion was not marked, and seller finalization after the dispute window when completion was marked and no dispute is open.
+The first Tolk prototype fixes the transitions and deadlines in contract storage. The terms and deadline fields are stored in a referenced cell to stay within TON's 1023-bit cell limit. Before accepting funds, the contract checks a positive amount, nonzero deal ID and terms hash, distinct buyer/seller/arbiter addresses, ordered deadlines, and exact TON funding. It supports seller acceptance, seller completion, buyer approval, participant disputes, arbiter resolution, buyer refund after the dispute window when completion was not marked, and seller finalization after the dispute window when completion was marked and no dispute is open.
 
 ## 3. Required agreement fields
 
@@ -43,7 +42,7 @@ The first Tolk prototype fixes the transitions and deadlines in contract storage
 3. Funds cannot be released or refunded more than once.
 4. A deal cannot become Funded without verified value in contract state.
 5. A timeout cannot bypass an active dispute.
-6. Every transition must be replay-resistant and emit an unambiguous event.
+6. Every transition must be replay-resistant. Explicit event emission and versioned event decoding are still pending.
 7. Amounts, asset identifiers and recipient addresses must be validated on-chain.
 8. Contract accounting must preserve all deposited value except explicitly specified network fees.
 9. Reputation integration must not be able to move funds.
@@ -57,4 +56,4 @@ The first Tolk prototype fixes the transitions and deadlines in contract storage
 - sandbox/Testnet integration tests;
 - independent contract review and audit before any mainnet consideration.
 
-The UI remains a design preview and is not connected to this contract. The contract code has not passed its first Acton build/test run yet. No real funds or Mainnet use are permitted. Deployment reserve and payout behavior still require dedicated gas, bounce, and accounting review.
+The UI remains a design preview and is not connected to this contract. The contract has passed its first Acton build and six emulator tests. These tests do not establish production safety. An open dispute has no resolution timeout: if the arbiter becomes unavailable, the escrow can remain locked indefinitely. Explicit event emission, property-based conservation tests, deployment-reserve calibration, payout gas/bounce behavior, and independent accounting/security review remain outstanding. No real funds or Mainnet use are permitted.

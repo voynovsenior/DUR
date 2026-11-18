@@ -34,6 +34,26 @@ type Attestation = {
   expiresAt: number | null;
   status: string;
 };
+type ReputationDimension = {
+  value: number | null;
+  evidenceCount: number;
+  issuerCount: number;
+  issuerConcentrationIndex: number | null;
+  largestIssuerShare: number | null;
+};
+type ReputationProfile = {
+  methodologyVersion: string;
+  computedAt: number;
+  dimensions: {
+    reliability: ReputationDimension;
+    delivery: ReputationDimension;
+    communication: ReputationDimension;
+    disputeResolution: ReputationDimension;
+  };
+  eligibleEvidenceCount: number;
+  eligibleIssuerCount: number;
+  limitations: string[];
+};
 declare global {
   interface Window {
     Telegram?: {
@@ -70,6 +90,8 @@ export default function App() {
   const [consents, setConsents] = useState<Consent[]>([]);
   const [attestations, setAttestations] = useState<Attestation[]>([]);
   const [attestationNotice, setAttestationNotice] = useState('');
+  const [reputation, setReputation] = useState<ReputationProfile | null>(null);
+  const [reputationNotice, setReputationNotice] = useState('');
   const [selectedIssuer, setSelectedIssuer] = useState('');
   const [selectedSchema, setSelectedSchema] = useState('');
   const [purpose, setPurpose] = useState('Issue delivery completion attestations');
@@ -141,6 +163,30 @@ export default function App() {
       }
     }).catch(() => {
       if (active) setAttestationNotice('Attestation history is currently unavailable.');
+    });
+    return () => { active = false; };
+  }, [authVerified, wallet, walletStatus]);
+
+  useEffect(() => {
+    if (!authVerified || !wallet || walletStatus !== 'Wallet ownership verified') {
+      setReputation(null);
+      return;
+    }
+    let active = true;
+    const subjectId = `wallet:-3:${wallet.account.address.toLowerCase()}`;
+    fetch(`${apiBase}/v1/profiles/${encodeURIComponent(subjectId)}/reputation`, {
+      credentials: 'include',
+      cache: 'no-store',
+    }).then(async response => {
+      if (!response.ok) throw new Error('reputation_profile_unavailable');
+      return await response.json() as { reputation: ReputationProfile };
+    }).then(body => {
+      if (active) {
+        setReputation(body.reputation);
+        setReputationNotice('');
+      }
+    }).catch(() => {
+      if (active) setReputationNotice('Reputation profile is currently unavailable.');
     });
     return () => { active = false; };
   }, [authVerified, wallet, walletStatus]);
@@ -368,12 +414,34 @@ export default function App() {
 
       {page === 'reputation' && <div className="panel">
         <Heading>REPUTATION BREAKDOWN</Heading>
-        <div className="empty"><Fingerprint /><b>{address ? 'Profile awaiting verification' : 'Wallet not connected'}</b>
-          <p>Reputation values will only appear when supported by verified evidence and documented rules.</p>
-        </div>
-        {['Verified on-chain events', 'Issuer reliability', 'Evidence quality', 'Dispute and duplicate checks'].map((item, index) => (
-          <div className="rowline" key={item}>0{index + 1}　{item}<small>PLANNED</small></div>
-        ))}
+        {!authVerified || !wallet || walletStatus !== 'Wallet ownership verified'
+          ? <div className="empty"><Fingerprint /><b>Verify your Testnet wallet</b>
+              <p>Your reputation profile is private and is shown only after Telegram authentication and server-side wallet ownership verification.</p>
+            </div>
+          : reputation
+            ? <>
+                <div className="empty">
+                  <Fingerprint />
+                  <b>{reputation.eligibleEvidenceCount > 0 ? 'Experimental evidence projection' : 'No eligible evidence yet'}</b>
+                  <p>Methodology v{reputation.methodologyVersion} · {reputation.eligibleEvidenceCount} eligible attestations · {reputation.eligibleIssuerCount} eligible issuers</p>
+                </div>
+                {([
+                  ['reliability', 'Reliability'],
+                  ['delivery', 'Delivery'],
+                  ['communication', 'Communication'],
+                  ['disputeResolution', 'Dispute resolution'],
+                ] as const).map(([key, label], index) => {
+                  const item = reputation.dimensions[key];
+                  return <div className="rowline" key={key}>
+                    0{index + 1}　{label}
+                    <small>{item.value === null ? 'NO DATA' : `${item.value.toFixed(2)} / 100`} · {item.evidenceCount} evidence · {item.issuerCount} issuers</small>
+                  </div>;
+                })}
+                <p>Issuer concentration is a diagnostic, not proof of independent control or collusion. These projections summarize issuer claims; they do not independently prove those claims true.</p>
+                {reputation.limitations.map((item, index) => <small key={index} className="authstatus">{item}</small>)}
+              </>
+            : <div className="empty"><b>Loading reputation profile…</b></div>}
+        {reputationNotice && <div className="notice">{reputationNotice}</div>}
       </div>}
 
       {page === 'attestations' && <div className="panel">

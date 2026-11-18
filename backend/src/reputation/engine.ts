@@ -76,22 +76,29 @@ export function calculateReputation(
 ): ReputationProjection {
   if (!Number.isSafeInteger(nowSeconds) || nowSeconds <= 0) throw new Error("invalid_computation_time");
 
+  // First select the newest record, including revoked or expired records. Filtering
+  // status/expiry before this step would accidentally resurrect an older active claim.
   const latest = new Map<string, ReputationEvidence>();
   for (const item of evidence) {
-    if (!item || typeof item.id !== "string" || typeof item.issuerId !== "string" ||
-        typeof item.schemaId !== "string" || !Number.isSafeInteger(item.issuedAt) ||
-        item.issuedAt <= 0 || item.issuedAt > nowSeconds + 300 ||
-        (item.expiresAt !== null && item.expiresAt <= nowSeconds) ||
-        item.status !== "active" || !(item.trustTier in TIER_WEIGHT) ||
-        TIER_WEIGHT[item.trustTier] <= 0) continue;
+    if (!item || typeof item.id !== "string" || !item.id ||
+        typeof item.issuerId !== "string" || !item.issuerId ||
+        typeof item.schemaId !== "string" || !item.schemaId ||
+        !Number.isSafeInteger(item.issuedAt) || item.issuedAt <= 0 ||
+        item.issuedAt > nowSeconds + 300) continue;
 
-    const key = item.issuerId + ":" + item.schemaId;
+    const key = JSON.stringify([item.issuerId, item.schemaId]);
     const current = latest.get(key);
     if (!current || item.issuedAt > current.issuedAt ||
         (item.issuedAt === current.issuedAt && item.id > current.id)) latest.set(key, item);
   }
 
-  const accepted = [...latest.values()].filter(item => Object.keys(readDimensionValues(item.claim)).length > 0);
+  const accepted = [...latest.values()].filter(item =>
+    item.status === "active" &&
+    (item.expiresAt === null || (Number.isSafeInteger(item.expiresAt) && item.expiresAt > nowSeconds)) &&
+    Object.hasOwn(TIER_WEIGHT, item.trustTier) &&
+    TIER_WEIGHT[item.trustTier] > 0 &&
+    Object.keys(readDimensionValues(item.claim)).length > 0
+  );
   const dimensions = {} as Record<ReputationDimension, ReputationDimensionResult>;
   for (const dimension of REPUTATION_DIMENSIONS) {
     let weightedTotal = 0;

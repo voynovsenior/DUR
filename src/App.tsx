@@ -19,6 +19,21 @@ type Consent = {
   expiresAt: number | null;
   revokedAt: number | null;
 };
+type Attestation = {
+  id: string;
+  schemaId: string;
+  schemaVersion: number;
+  issuerId: string;
+  issuerName: string;
+  issuerTrustTier: string;
+  issuerStatus: string;
+  claim: Record<string, unknown>;
+  claimDigest: string;
+  evidenceRefs: string[];
+  issuedAt: number;
+  expiresAt: number | null;
+  status: string;
+};
 declare global {
   interface Window {
     Telegram?: {
@@ -53,6 +68,8 @@ export default function App() {
   const [issuers, setIssuers] = useState<Issuer[]>([]);
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [consents, setConsents] = useState<Consent[]>([]);
+  const [attestations, setAttestations] = useState<Attestation[]>([]);
+  const [attestationNotice, setAttestationNotice] = useState('');
   const [selectedIssuer, setSelectedIssuer] = useState('');
   const [selectedSchema, setSelectedSchema] = useState('');
   const [purpose, setPurpose] = useState('Issue delivery completion attestations');
@@ -103,6 +120,30 @@ export default function App() {
     const body = await response.json() as { consents: Consent[] };
     setConsents(body.consents);
   };
+
+  useEffect(() => {
+    if (!authVerified || !wallet || walletStatus !== 'Wallet ownership verified') {
+      setAttestations([]);
+      return;
+    }
+    let active = true;
+    const walletAddress = wallet.account.address;
+    fetch(`${apiBase}/v1/auth/attestations?walletAddress=${encodeURIComponent(walletAddress)}`, {
+      credentials: 'include',
+      cache: 'no-store',
+    }).then(async response => {
+      if (!response.ok) throw new Error('attestation_history_unavailable');
+      return await response.json() as { attestations: Attestation[] };
+    }).then(body => {
+      if (active) {
+        setAttestations(body.attestations);
+        setAttestationNotice('');
+      }
+    }).catch(() => {
+      if (active) setAttestationNotice('Attestation history is currently unavailable.');
+    });
+    return () => { active = false; };
+  }, [authVerified, wallet, walletStatus]);
 
   useEffect(() => {
     if (!authVerified) return;
@@ -293,7 +334,7 @@ export default function App() {
       {page === 'overview' && <>
         <div className="welcome">
           <span>{tg?.initDataUnsafe?.user?.first_name ? `WELCOME, ${tg.initDataUnsafe.user.first_name.toUpperCase()}` : 'PROTOCOL OVERVIEW'}</span>
-          <span className="ready">● SYSTEM READY</span>
+          <span className="ready">● TESTNET PREVIEW</span>
         </div>
         <section className="rep">
           <div className="orbit"><div /><div /><span><Shield size={25} /></span><Sparkles className="spark" /></div>
@@ -373,6 +414,21 @@ export default function App() {
               {!revoked && !expired && <button className="revoke-action" disabled={consentBusy} onClick={() => revokeConsent(consent.id)}>REVOKE CONSENT</button>}
             </div>;
           })}
+          <Heading>YOUR ATTESTATIONS</Heading>
+          {!wallet || walletStatus !== 'Wallet ownership verified'
+            ? <div className="empty"><b>Verify a linked wallet</b><p>Your attestation history is available only after DUR verifies ownership of your Testnet wallet.</p></div>
+            : attestations.length === 0
+              ? <div className="empty"><b>No attestations yet</b><p>Claims issued by authorized issuers for this wallet will appear here.</p></div>
+              : attestations.map(item => (
+                <div className="consent-card" key={item.id}>
+                  <div><b>{item.schemaId} · v{item.schemaVersion}</b><small>{item.issuerName} · {new Date(item.issuedAt * 1000).toLocaleDateString()}</small></div>
+                  <span className={item.status === 'active' ? 'consent-active' : 'consent-inactive'}>{item.status.toUpperCase()}</span>
+                  <p>{JSON.stringify(item.claim)}</p>
+                  <small>{item.evidenceRefs.length} evidence reference(s) · {item.issuerTrustTier} issuer · {item.issuerStatus}</small>
+                  <small>Record {short(item.id)} · digest {short(item.claimDigest)}</small>
+                </div>
+              ))}
+          {attestationNotice && <div className="notice">{attestationNotice}</div>}
         </>}
       </div>}
 

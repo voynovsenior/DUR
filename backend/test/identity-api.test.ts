@@ -293,6 +293,11 @@ test('CORS preflight permits the authorization header only for the configured or
     assert.equal(allowed.status, 204);
     assert.equal(allowed.headers.get('access-control-allow-headers'), 'content-type, authorization');
 
+    // Server-to-server SDK requests have no Origin header and must not be
+    // mistaken for cross-origin browser requests.
+    const serverToServer = await fetch(`http://127.0.0.1:${address.port}/v1/indexer/status`);
+    assert.equal(serverToServer.status, 200);
+
     const denied = await fetch(`http://127.0.0.1:${address.port}/v1/indexer/status`, {
       headers: { origin: 'https://evil.example' },
     });

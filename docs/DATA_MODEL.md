@@ -60,6 +60,10 @@ Proposed fields:
 
 Events need deterministic identities and idempotent ingestion. Reprocessing the same chain event must not create additional reputation weight.
 
+## Attestation disputes
+
+Implemented in migration 8. A dispute is opened by the authenticated owner of the attestation subject wallet and records a reason plus evidence references. Resolution is admin-only and records status, reviewer label, reason and timestamp in an append-only event history. Statuses are `open`, `upheld`, and `rejected`. Open and upheld disputes exclude the attestation from reputation calculations; rejected disputes do not.
+
 ## Reputation projection
 A derived view over eligible attestations, not a source of truth. The current experimental calculation is computed on demand and is not persisted. It returns methodology version, dimension values, evidence and issuer counts, computation time and limitations. It excludes raw indexer events until canonical proof verification and event decoding are implemented.
 

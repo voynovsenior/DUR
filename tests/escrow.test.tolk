@@ -224,7 +224,6 @@ get fun `test invalid deadline ordering is rejected before funding`() {
     expect(contract.currentState()).toEqual(EscrowState.Accepted);
 }
 
-
 get fun `test seller acceptance is allowed exactly at the funding deadline`() {
     val (contract, _, seller, _) = setupTest();
     testing.setNow(2_000);

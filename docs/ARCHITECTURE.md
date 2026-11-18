@@ -4,7 +4,7 @@
 
 DUR is a modular trust infrastructure prototype for the TON ecosystem. The repository contains a Telegram Mini App and bot, a backend API, persistent identity and issuer/attestation services, an experimental reputation projection, a Testnet indexer with a separate transaction-proof verifier, a TypeScript issuer SDK, and an experimental Tolk escrow contract.
 
-The project is **prototype / early development**, not production-ready. Wallet linking supports only explicitly implemented wallet versions and still needs real-wallet Testnet QA. The indexer imports provider data as unverified; the proof verifier can establish transaction inclusion/account-history facts, but contract-specific event decoding and semantic policy are still pending. The escrow contract is not deployed or independently audited. No real funds or Mainnet use are permitted.
+The project is **prototype / early development**, not production-ready. Wallet linking supports only explicitly implemented wallet versions and still needs real-wallet Testnet QA. The indexer imports provider data as unverified; the proof verifier can establish transaction inclusion/account-history facts and extract v1 escrow lifecycle logs from proved transactions. Source-contract identity, historical code verification and semantic policy remain pending. The escrow contract is not deployed or independently audited. No real funds or Mainnet use are permitted.
 
 ## Components
 
@@ -15,7 +15,7 @@ The project is **prototype / early development**, not production-ready. Wallet l
 5. **Reputation Engine** — deterministic, versioned experimental projection over eligible attestations. It reports separate dimensions, evidence coverage and limitations; it is not a calibrated universal trust score.
 6. **Attestation Registry** — issuer registration and API-key authentication, immutable JSON Schema versions, claim validation, issuance/expiry/revocation, wallet-owner consent, issuer trust-tier administration and dispute lifecycle.
 7. **Escrow module** — independent experimental Tolk contract and lifecycle model. Reputation may consume verified completion evidence, but it must never control fund release or refund.
-8. **Indexer / verifier** — TON Center Testnet ingestion, durable checkpoints and a continuous worker; a separate Go verifier checks transaction inclusion against a Testnet trust anchor. Contract-specific decoding and semantic event verification remain pending.
+8. **Indexer / verifier** — TON Center Testnet ingestion, durable checkpoints and a continuous worker; a separate Go verifier checks transaction inclusion against a Testnet trust anchor. V1 escrow lifecycle-event emission and proof-based extraction are implemented; contract address/code-hash allowlisting, historical code identity and semantic event verification remain pending.
 9. **Developer interfaces** — TypeScript issuer SDK, API documentation and OpenAPI contract. Broader profile/query SDK and integration examples remain pending.
 
 ## Trust boundaries

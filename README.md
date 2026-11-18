@@ -50,7 +50,7 @@ The first UI package includes:
 | TON Connect | UI integration; manifest must be configured |
 | Reputation engine | Experimental v0.1 attestation projection; not calibrated for production |
 | Attestation registry | Issuer-authenticated issuance/revocation, immutable JSON Schema validation, wallet-owner consent, and audited admin trust-tier controls; draft issuer policy; owner-initiated disputes and admin resolution are implemented |
-| Developer SDK | TypeScript issuer SDK for attestation operations; broader profile/query SDK pending |
+| Developer SDK | TypeScript issuer, subject and admin clients; attestation lifecycle, reputation/dispute workflows, issuer/schema discovery and server-side integration example |
 | Escrow contracts | Experimental Tolk prototype; not deployed or audited |
 | Backend API | Telegram authentication, TON Proof wallet linking, issuer/schema APIs, experimental reputation profiles, and read-only indexer endpoints; escrow API pending |
 | Chain indexer | Manual/continuous TON Testnet API v3 ingestion, durable checkpoints and separate transaction proof verification; semantic DUR event decoding pending |
@@ -160,7 +160,8 @@ Never commit a real bot token. Do not send bot tokens, seed phrases, or private 
 - [TON indexer architecture and current implementation](docs/INDEXER.md)
 - [Escrow Testnet specification draft](docs/ESCROW_SPEC.md)
 - [Escrow threat model and release gates](docs/ESCROW_THREAT_MODEL.md)
-- [Issuer SDK](sdk/README.md)
+- [Issuer and integration SDK](sdk/README.md)
+- [Server-side issuer integration example](sdk/examples/issuer-integration.ts)
 - [Security model](docs/SECURITY.md)
 - [Six-stage roadmap](docs/ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)

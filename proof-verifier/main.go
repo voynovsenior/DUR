@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/xssnick/tonutils-go/address"
@@ -121,6 +122,44 @@ func parseRequest(r io.Reader) (request, *address.Address, uint64, []byte, error
 	return req, addr, lt, hash, nil
 }
 
+func validateEscrowLifecycleEvent(event escrowLifecycleEvent) error {
+	if event.DealID == "0" || event.EventSequence == 0 || event.TermsHash == strings.Repeat("0", 64) {
+		return errors.New("invalid_escrow_event_identity")
+	}
+	if event.Actor == event.Counterparty {
+		return errors.New("invalid_escrow_event_participants")
+	}
+	valid := false
+	switch event.EventType {
+	case "accepted":
+		valid = event.PreviousState == "created" && event.NewState == "accepted" && event.Decision == "none"
+	case "funded":
+		valid = event.PreviousState == "accepted" && event.NewState == "funded" && event.Decision == "none"
+	case "completion_marked":
+		valid = event.PreviousState == "funded" && event.NewState == "funded" && event.Decision == "none"
+	case "dispute_opened":
+		valid = event.PreviousState == "funded" && event.NewState == "disputed" && event.Decision == "none"
+	case "dispute_vote_recorded":
+		valid = event.PreviousState == "disputed" && event.NewState == "disputed" &&
+			(event.Decision == "release_to_seller" || event.Decision == "refund_to_buyer")
+	case "mutual_dispute_resolved", "arbiter_dispute_resolved":
+		valid = event.PreviousState == "disputed" &&
+			((event.NewState == "released" && event.Decision == "release_to_seller") ||
+				(event.NewState == "refunded" && event.Decision == "refund_to_buyer"))
+	case "released":
+		valid = event.PreviousState == "funded" && event.NewState == "released" && event.Decision == "release_to_seller"
+	case "refunded":
+		valid = event.PreviousState == "funded" && event.NewState == "refunded" && event.Decision == "refund_to_buyer"
+	case "cancelled":
+		valid = (event.PreviousState == "created" || event.PreviousState == "accepted") &&
+			event.NewState == "cancelled" && event.Decision == "none"
+	}
+	if !valid {
+		return errors.New("invalid_escrow_event_transition")
+	}
+	return nil
+}
+
 func parseEscrowLifecycleEvent(body *cell.Cell) (escrowLifecycleEvent, error) {
 	var decoded escrowLifecycleEventBody
 	if body == nil {
@@ -177,7 +216,7 @@ func parseEscrowLifecycleEvent(body *cell.Cell) (escrowLifecycleEvent, error) {
 	if decoded.Actor == nil || decoded.Counterparty == nil || len(decoded.TermsHash) != 32 {
 		return escrowLifecycleEvent{}, errors.New("incomplete_escrow_event_fields")
 	}
-	return escrowLifecycleEvent{
+	event := escrowLifecycleEvent{
 		SchemaVersion: decoded.SchemaVersion,
 		DealID:        strconv.FormatUint(decoded.DealID, 10),
 		EventSequence: decoded.EventSequence,
@@ -188,7 +227,11 @@ func parseEscrowLifecycleEvent(body *cell.Cell) (escrowLifecycleEvent, error) {
 		Counterparty:  decoded.Counterparty.StringRaw(),
 		TermsHash:     hex.EncodeToString(decoded.TermsHash),
 		Decision:      decision,
-	}, nil
+	}
+	if err := validateEscrowLifecycleEvent(event); err != nil {
+		return escrowLifecycleEvent{}, err
+	}
+	return event, nil
 }
 
 func decodeEscrowLifecycleEvents(tx *tlb.Transaction) ([]escrowLifecycleEvent, []string) {

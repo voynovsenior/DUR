@@ -25,7 +25,8 @@ fun onInternalMessage(in: InMessage) {
             var storage = lazy Storage.load();
             assert (storage.state == EscrowState.Created) throw Errors.InvalidState;
             assert (in.senderAddress == storage.seller) throw Errors.Unauthorized;
-            assert (blockchain.now() <= storage.fundingDeadline) throw Errors.DeadlinePassed;
+            val extra = ExtraFields.fromCell(storage.extra);
+            assert (blockchain.now() <= extra.fundingDeadline) throw Errors.DeadlinePassed;
 
             storage.state = EscrowState.Accepted;
             storage.save();
@@ -34,7 +35,8 @@ fun onInternalMessage(in: InMessage) {
             var storage = lazy Storage.load();
             assert (storage.state == EscrowState.Accepted) throw Errors.InvalidState;
             assert (in.senderAddress == storage.buyer) throw Errors.Unauthorized;
-            assert (blockchain.now() <= storage.fundingDeadline) throw Errors.DeadlinePassed;
+            val extra = ExtraFields.fromCell(storage.extra);
+            assert (blockchain.now() <= extra.fundingDeadline) throw Errors.DeadlinePassed;
             assert (in.valueCoins == storage.amount + storage.fundingReserve) throw Errors.InvalidFundingValue;
 
             storage.state = EscrowState.Funded;
@@ -44,7 +46,8 @@ fun onInternalMessage(in: InMessage) {
             var storage = lazy Storage.load();
             assert (storage.state == EscrowState.Funded) throw Errors.InvalidState;
             assert (in.senderAddress == storage.seller) throw Errors.Unauthorized;
-            assert (blockchain.now() <= storage.completionDeadline) throw Errors.DeadlinePassed;
+            val extra = ExtraFields.fromCell(storage.extra);
+            assert (blockchain.now() <= extra.completionDeadline) throw Errors.DeadlinePassed;
 
             storage.completionMarked = true;
             storage.save();
@@ -66,7 +69,8 @@ fun onInternalMessage(in: InMessage) {
                 in.senderAddress == storage.buyer ||
                 in.senderAddress == storage.seller
             ) throw Errors.Unauthorized;
-            assert (blockchain.now() <= storage.disputeDeadline) throw Errors.DeadlinePassed;
+            val extra = ExtraFields.fromCell(storage.extra);
+            assert (blockchain.now() <= extra.disputeDeadline) throw Errors.DeadlinePassed;
 
             storage.state = EscrowState.Disputed;
             storage.save();
@@ -91,7 +95,8 @@ fun onInternalMessage(in: InMessage) {
             assert (storage.state == EscrowState.Funded) throw Errors.InvalidState;
             assert (in.senderAddress == storage.buyer) throw Errors.Unauthorized;
             assert (!storage.completionMarked) throw Errors.InvalidState;
-            assert (blockchain.now() > storage.disputeDeadline) throw Errors.DeadlinePassed;
+            val extra = ExtraFields.fromCell(storage.extra);
+            assert (blockchain.now() > extra.disputeDeadline) throw Errors.DeadlinePassed;
 
             storage.state = EscrowState.Refunded;
             storage.save();
@@ -126,4 +131,9 @@ get fun currentState(): EscrowState {
 
 get fun agreementDetails(): Storage {
     return Storage.load();
+}
+
+get fun agreementTerms(): ExtraFields {
+    val storage = lazy Storage.load();
+    return ExtraFields.fromCell(storage.extra);
 }

@@ -3,7 +3,6 @@ export type EscrowState =
   | 'accepted'
   | 'funded'
   | 'disputed'
-  | 'resolved'
   | 'released'
   | 'refunded'
   | 'cancelled';
@@ -27,8 +26,7 @@ const transitions: Record<EscrowState, readonly EscrowState[]> = {
   created: ['accepted', 'cancelled'],
   accepted: ['funded', 'cancelled'],
   funded: ['released', 'refunded', 'disputed'],
-  disputed: ['resolved'],
-  resolved: ['released', 'refunded'],
+  disputed: ['released', 'refunded'],
   released: [],
   refunded: [],
   cancelled: [],

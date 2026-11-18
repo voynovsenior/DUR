@@ -1,0 +1,19 @@
+FROM golang:1.26-bookworm AS proof-build
+WORKDIR /src/proof-verifier
+COPY proof-verifier/go.mod ./
+RUN go mod download
+COPY proof-verifier/ ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/dur-proof-verifier .
+
+FROM node:20-bookworm-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package.json ./
+COPY sdk/package.json ./sdk/package.json
+RUN npm install --omit=dev
+COPY backend ./backend
+COPY bot ./bot
+COPY sdk ./sdk
+COPY --from=proof-build /out/dur-proof-verifier /app/bin/dur-proof-verifier
+EXPOSE 8787
+CMD ["npm", "run", "api"]

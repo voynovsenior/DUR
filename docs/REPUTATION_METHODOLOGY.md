@@ -44,7 +44,7 @@ Each dimension is a weighted arithmetic mean:
 
 `dimension = sum(value * tierWeight * recencyWeight) / sum(tierWeight * recencyWeight)`
 
-Values are clamped to the 0–100 range and rounded to two decimal places. If no eligible evidence exists for a dimension, its value is `null`.
+Values are clamped to the 0–100 range and rounded to two decimal places. There is no fixed age cutoff: older evidence has progressively less influence but remains eligible while its attestation is active and unexpired. If no eligible evidence exists for a dimension, its value is `null`. Attestations with no supported dimension values are not included in the eligible evidence totals.
 
 ## 4. Issuer review
 

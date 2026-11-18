@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: proof-verifier-${{ github.ref }}
-  cancel-in-progress: true
+  group: proof-verifier-${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: false
 
 permissions: {}
 

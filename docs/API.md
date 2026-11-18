@@ -154,6 +154,18 @@ Requires an authenticated Telegram session and proof that the subject wallet is 
 
 Only active, unexpired attestations from active issuers with `verified`, `trusted`, or `official` tiers are eligible. Unverified issuers and all indexer events are excluded. Claims contribute only when they contain `reputation.dimensions` values from 0 to 100. Repeated attestations from the same issuer/schema pair are collapsed to the latest. The projection uses trust-tier weights and a 180-day half-life. It is experimental and must not be treated as a calibrated universal score.
 
+## TypeScript SDK
+
+The SDK package in `sdk/` exposes three clients:
+
+- `DurIssuerClient` — authenticated attestation issue/read/revoke and API-key revocation, plus issuer and schema catalog discovery.
+- `DurSubjectClient` — cookie-authenticated reputation reads, dispute workflows and profile-visibility consent management. A profile read is available to its linked wallet owner, or anonymously when an active public-visibility consent exists.
+- `DurAdminClient` — server-side trust-tier review, dispute resolution and transaction-proof verification. Never ship this client or its token to a browser.
+
+Issuer catalog discovery maps to `GET /v1/issuers`; schema discovery maps to `GET /v1/schemas` and `GET /v1/schemas/{schemaId}/{version}`. The SDK URL builder percent-encodes schema IDs and validates positive integer schema versions.
+
+Build the package from the repository root with `npm run build:sdk`. A minimal server-side integration example is provided in [sdk/examples/issuer-integration.ts](../sdk/examples/issuer-integration.ts). Keep issuer and admin credentials in server-side secret storage. The SDK does not grant subject consent, verify evidence references, or elevate an issuer's trust tier.
+
 ## Local development
 
 ~~~bash

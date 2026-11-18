@@ -437,6 +437,13 @@ test('wallet owner can dispute attestations and reviewed outcomes control reputa
     const disputeBody = await opened.json() as { dispute: { id: string; status: string } };
     assert.equal(disputeBody.dispute.status, 'open');
 
+    const duplicate = await fetch(`${base}/v1/attestations/${attestation.id}/disputes`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ reason: 'Duplicate challenge while the first remains open' }),
+    });
+    assert.equal(duplicate.status, 409);
+
     const list = await fetch(`${base}/v1/auth/disputes`, { headers: { cookie } });
     assert.equal(list.status, 200);
     assert.equal((await list.json() as { disputes: unknown[] }).disputes.length, 1);
@@ -471,5 +478,12 @@ test('wallet owner can dispute attestations and reviewed outcomes control reputa
 
     const afterUpheld = await fetch(`${base}/v1/profiles/${subjectId}/reputation`, { headers: { cookie } });
     assert.equal((await afterUpheld.json() as { reputation: { dimensions: { reliability: { value: number | null } } } }).reputation.dimensions.reliability.value, null);
+
+    const reopen = await fetch(`${base}/v1/attestations/${attestation.id}/disputes`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ reason: 'Attempt to reopen an upheld dispute' }),
+    });
+    assert.equal(reopen.status, 409);
   });
 });

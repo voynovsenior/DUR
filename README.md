@@ -159,6 +159,7 @@ Never commit a real bot token. Do not send bot tokens, seed phrases, or private 
 - [Issuer trust policy draft](docs/ISSUER_TRUST_POLICY.md)
 - [TON indexer architecture and current implementation](docs/INDEXER.md)
 - [Escrow Testnet specification draft](docs/ESCROW_SPEC.md)
+- [Escrow threat model and release gates](docs/ESCROW_THREAT_MODEL.md)
 - [Issuer SDK](sdk/README.md)
 - [Security model](docs/SECURITY.md)
 - [Six-stage roadmap](docs/ROADMAP.md)

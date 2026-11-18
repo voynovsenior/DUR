@@ -110,6 +110,27 @@ export class AttestationDisputeRegistry {
     }));
   }
 
+  listAll(input: { status?: AttestationDisputeStatus; limit?: number } = {}): AttestationDispute[] {
+    const limit = Math.max(1, Math.min(100, Math.trunc(input.limit ?? 50)));
+    const rows = this.db.prepare(`
+      SELECT id, attestation_id AS attestationId, subject_id AS subjectId,
+             opened_by_user_id AS openedByUserId, reason,
+             evidence_refs_json AS evidenceRefsJson, status,
+             resolution_reason AS resolutionReason, opened_at AS openedAt,
+             resolved_at AS resolvedAt
+      FROM attestation_disputes
+      WHERE (? IS NULL OR status = ?)
+      ORDER BY opened_at DESC, id DESC
+      LIMIT ?
+    `).all(input.status ?? null, input.status ?? null, limit) as Array<
+      Omit<AttestationDispute, "evidenceRefs"> & { evidenceRefsJson: string }
+    >;
+    return rows.map(({ evidenceRefsJson, ...dispute }) => ({
+      ...dispute,
+      evidenceRefs: JSON.parse(evidenceRefsJson) as string[],
+    }));
+  }
+
   resolve(
     id: string,
     status: "upheld" | "rejected",

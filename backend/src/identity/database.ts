@@ -305,5 +305,30 @@ export function openDatabase(filename = process.env.DUR_DATABASE_PATH ?? './data
     migrate();
   }
 
+
+  const profileVisibilityMigration = db.prepare('SELECT version FROM schema_migrations WHERE version = 10').get();
+  if (!profileVisibilityMigration) {
+    const migrate = db.transaction(() => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS profile_visibility_consents (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES users(id),
+          network TEXT NOT NULL CHECK(network = '-3'),
+          wallet_address TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          expires_at INTEGER NOT NULL,
+          revoked_at INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS profile_visibility_wallet_idx
+          ON profile_visibility_consents(network, wallet_address, expires_at DESC);
+        CREATE INDEX IF NOT EXISTS profile_visibility_user_idx
+          ON profile_visibility_consents(user_id, created_at DESC);
+      `);
+      db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (10, ?)')
+        .run(Math.floor(Date.now() / 1000));
+    });
+    migrate();
+  }
+
   return db;
 }

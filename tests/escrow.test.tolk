@@ -393,8 +393,16 @@ get fun `test conflicting dispute votes remain pending until both parties agree`
     contract.sendFund(buyer.address, { value: grams("1") });
     contract.sendOpenDispute(seller.address, { value: grams("0.1") });
 
-    contract.sendVoteResolution(buyer.address, ResolutionVote.ReleaseToSeller, { value: grams("0.1") });
-    contract.sendVoteResolution(seller.address, ResolutionVote.RefundToBuyer, { value: grams("0.1") });
+    contract.sendVoteResolution(
+        buyer.address,
+        ResolutionVote.ReleaseToSeller,
+        { value: grams("0.1") },
+    );
+    contract.sendVoteResolution(
+        seller.address,
+        ResolutionVote.RefundToBuyer,
+        { value: grams("0.1") },
+    );
     expect(contract.currentState()).toEqual(EscrowState.Disputed);
 
     val updatedVote = contract.sendVoteResolution(

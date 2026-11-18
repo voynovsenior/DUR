@@ -31,7 +31,7 @@ jobs:
       - name: Check formatting
         run: acton fmt --check
       - name: Generate contract wrappers
-        run: acton wrapper Escrow
+        run: acton wrapper escrow
       - name: Lint contracts
         run: acton check --output-format github
       - name: Run contract tests

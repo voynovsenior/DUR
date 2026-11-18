@@ -1,7 +1,7 @@
 # Protocol concepts
 
 ## Reputation
-DUR intends to represent reputation as evidence-backed dimensions rather than an unexplained universal number. Any future aggregate must publish its methodology, eligible evidence classes, weighting rules, decay policy and dispute handling.
+DUR exposes an experimental, versioned attestation projection with four dimensions: reliability, delivery, communication and dispute resolution. Each dimension is a weighted mean of eligible issuer-provided values. Issuer tiers weight evidence (verified 0.5, trusted 0.75, official 1.0); recency decays with a 180-day half-life. The latest active attestation per issuer/schema pair replaces earlier submissions. Unverified issuers, revoked/expired attestations and unverified indexer events are excluded. This is a development methodology, not a calibrated universal score. Issuer claims are claims, not independently verified facts.
 
 ## Attestations
 An attestation is a structured claim. A proposed record should include schema and version, issuer identity and policy reference, subject identifier, claim payload or content hash, evidence references, creation time, optional expiry, status and revocation reference.

@@ -8,6 +8,19 @@ export type TonTransactionProofRequest = {
   maxScan?: number;
 };
 
+export type EscrowLifecycleEventObservation = {
+  schemaVersion: 1;
+  dealId: string;
+  eventSequence: number;
+  eventType: string;
+  previousState: string;
+  newState: string;
+  actor: string;
+  counterparty: string;
+  termsHash: string;
+  decision: string;
+};
+
 export type TonTransactionProofResult = {
   verified: boolean;
   network: "testnet";
@@ -20,6 +33,9 @@ export type TonTransactionProofResult = {
   scannedTransactions: number;
   proofPolicy: "secure";
   verifierVersion: string;
+  currentAccountCodeHash?: string;
+  escrowEvents?: EscrowLifecycleEventObservation[];
+  eventDecodeErrors?: string[];
   reason?: string;
 };
 
@@ -86,6 +102,27 @@ export async function verifyTonTestnetTransaction(
           result.address.toLowerCase() !== input.address.toLowerCase() || result.transactionLt !== input.lt ||
           result.transactionHash.toLowerCase() !== input.txHash.toLowerCase()) {
         finish(new Error("proof_verifier_result_mismatch"));
+        return;
+      }
+      if (result.currentAccountCodeHash !== undefined &&
+          !/^[a-fA-F0-9]{64}$/.test(result.currentAccountCodeHash)) {
+        finish(new Error("proof_verifier_invalid_code_hash"));
+        return;
+      }
+      if (result.escrowEvents !== undefined && (!Array.isArray(result.escrowEvents) ||
+          result.escrowEvents.length > 32 || result.escrowEvents.some(event =>
+            event.schemaVersion !== 1 || !/^[0-9]{1,20}$/.test(event.dealId) ||
+            !Number.isInteger(event.eventSequence) || event.eventSequence < 1 ||
+            !/^[a-fA-F0-9]{64}$/.test(event.termsHash) ||
+            !/^(?:-1|0):[a-fA-F0-9]{64}$/.test(event.actor) ||
+            !/^(?:-1|0):[a-fA-F0-9]{64}$/.test(event.counterparty)))) {
+        finish(new Error("proof_verifier_invalid_escrow_events"));
+        return;
+      }
+      if (result.eventDecodeErrors !== undefined && (!Array.isArray(result.eventDecodeErrors) ||
+          result.eventDecodeErrors.length > 32 || result.eventDecodeErrors.some(error =>
+            typeof error !== "string" || error.length > 512))) {
+        finish(new Error("proof_verifier_invalid_event_errors"));
         return;
       }
       finish(undefined, result);

@@ -102,6 +102,49 @@ func TestParseEscrowLifecycleEvent(t *testing.T) {
 	}
 }
 
+
+func TestValidateEscrowLifecycleEventRejectsImpossibleTransition(t *testing.T) {
+	event := escrowLifecycleEvent{
+		SchemaVersion: 1,
+		DealID: "42",
+		EventSequence: 2,
+		EventType: "funded",
+		PreviousState: "created",
+		NewState: "released",
+		Actor: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Counterparty: "0:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		TermsHash: strings.Repeat("c", 64),
+		Decision: "release_to_seller",
+	}
+	if err := validateEscrowLifecycleEvent(event); err == nil || err.Error() != "invalid_escrow_event_transition" {
+		t.Fatalf("expected impossible transition rejection, got %v", err)
+	}
+}
+
+func TestValidateEscrowLifecycleEventRejectsZeroIdentityAndSameParticipants(t *testing.T) {
+	event := escrowLifecycleEvent{
+		SchemaVersion: 1,
+		DealID: "0",
+		EventSequence: 0,
+		EventType: "accepted",
+		PreviousState: "created",
+		NewState: "accepted",
+		Actor: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Counterparty: "0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		TermsHash: strings.Repeat("0", 64),
+		Decision: "none",
+	}
+	if err := validateEscrowLifecycleEvent(event); err == nil || err.Error() != "invalid_escrow_event_identity" {
+		t.Fatalf("expected invalid event identity rejection, got %v", err)
+	}
+	event.DealID = "42"
+	event.EventSequence = 1
+	event.TermsHash = strings.Repeat("c", 64)
+	if err := validateEscrowLifecycleEvent(event); err == nil || err.Error() != "invalid_escrow_event_participants" {
+		t.Fatalf("expected same participant rejection, got %v", err)
+	}
+}
+
 func TestParseEscrowLifecycleEventRejectsUnknownVersion(t *testing.T) {
 	actor, _ := address.ParseRawAddr("0:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	counterparty, _ := address.ParseRawAddr("0:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")

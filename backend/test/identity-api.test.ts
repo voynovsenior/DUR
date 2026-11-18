@@ -384,3 +384,92 @@ test('admin trust review enables an owner-only reputation projection', async () 
     assert.equal(invalid.status, 400);
   });
 });
+
+test('wallet owner can dispute attestations and reviewed outcomes control reputation eligibility', async () => {
+  await withServer(async (base, db) => {
+    const issuerResponse = await fetch(`${base}/v1/admin/issuers`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer unit-test-admin-value' },
+      body: JSON.stringify({ displayName: 'Dispute Test Issuer', issuerType: 'marketplace' }),
+    });
+    assert.equal(issuerResponse.status, 201);
+    const issuerBody = await issuerResponse.json() as { issuer: { id: string } };
+
+    const tierResponse = await fetch(`${base}/v1/admin/issuers/${issuerBody.issuer.id}/trust-tier`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer unit-test-admin-value' },
+      body: JSON.stringify({ trustTier: 'verified', reason: 'Issuer passed a documented review' }),
+    });
+    assert.equal(tierResponse.status, 200);
+
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    assert.equal(login.status, 200);
+    const cookie = login.headers.get('set-cookie')!.split(';')[0];
+    const loginBody = await login.json() as { user: { id: string } };
+    const subjectId = `wallet:-3:0:${'c'.repeat(64)}`;
+    db.prepare(`
+      INSERT INTO wallet_links (id, user_id, network, address, public_key, linked_at)
+      VALUES (?, ?, '-3', ?, ?, ?)
+    `).run('dispute-wallet-link', loginBody.user.id, '0:' + 'c'.repeat(64), 'd'.repeat(64), now);
+
+    const registry = new AttestationRegistry(db);
+    const attestation = registry.issue(issuerBody.issuer.id, {
+      schemaId: 'dur.reputation.dispute-test',
+      schemaVersion: 1,
+      subjectId,
+      claim: { reputation: { dimensions: { reliability: 95 } } },
+      evidenceRefs: ['https://example.org/dispute-test'],
+    });
+
+    const before = await fetch(`${base}/v1/profiles/${subjectId}/reputation`, { headers: { cookie } });
+    assert.equal((await before.json() as { reputation: { dimensions: { reliability: { value: number | null } } } }).reputation.dimensions.reliability.value, 95);
+
+    const opened = await fetch(`${base}/v1/attestations/${attestation.id}/disputes`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ reason: 'The reported delivery did not occur', evidenceRefs: ['https://example.org/complaint'] }),
+    });
+    assert.equal(opened.status, 201);
+    const disputeBody = await opened.json() as { dispute: { id: string; status: string } };
+    assert.equal(disputeBody.dispute.status, 'open');
+
+    const list = await fetch(`${base}/v1/auth/disputes`, { headers: { cookie } });
+    assert.equal(list.status, 200);
+    assert.equal((await list.json() as { disputes: unknown[] }).disputes.length, 1);
+
+    const whileOpen = await fetch(`${base}/v1/profiles/${subjectId}/reputation`, { headers: { cookie } });
+    assert.equal((await whileOpen.json() as { reputation: { dimensions: { reliability: { value: number | null } } } }).reputation.dimensions.reliability.value, null);
+
+    const rejected = await fetch(`${base}/v1/admin/disputes/${disputeBody.dispute.id}/resolve`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer unit-test-admin-value' },
+      body: JSON.stringify({ status: 'rejected', reason: 'Submitted material did not substantiate the dispute' }),
+    });
+    assert.equal(rejected.status, 200);
+
+    const afterRejected = await fetch(`${base}/v1/profiles/${subjectId}/reputation`, { headers: { cookie } });
+    assert.equal((await afterRejected.json() as { reputation: { dimensions: { reliability: { value: number | null } } } }).reputation.dimensions.reliability.value, 95);
+
+    const second = await fetch(`${base}/v1/attestations/${attestation.id}/disputes`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie },
+      body: JSON.stringify({ reason: 'Additional evidence indicates the claim was incorrect' }),
+    });
+    assert.equal(second.status, 201);
+    const secondBody = await second.json() as { dispute: { id: string } };
+
+    const upheld = await fetch(`${base}/v1/admin/disputes/${secondBody.dispute.id}/resolve`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer unit-test-admin-value' },
+      body: JSON.stringify({ status: 'upheld', reason: 'Independent review confirmed the reported issue' }),
+    });
+    assert.equal(upheld.status, 200);
+
+    const afterUpheld = await fetch(`${base}/v1/profiles/${subjectId}/reputation`, { headers: { cookie } });
+    assert.equal((await afterUpheld.json() as { reputation: { dimensions: { reliability: { value: number | null } } } }).reputation.dimensions.reliability.value, null);
+  });
+});

@@ -82,3 +82,25 @@ test('issuer suspension blocks API key authentication and revocation is terminal
     db.close();
   }
 });
+
+test('issuer trust tier changes require a reason and retain an audit trail', () => {
+  const db = openDatabase(':memory:');
+  try {
+    const registry = new AttestationRegistry(db);
+    const created = registry.createIssuer({ displayName: 'Reviewed Issuer', issuerType: 'marketplace' }, 100);
+    assert.equal(registry.setIssuerTrustTier(created.issuer.id, 'verified', 'Business and evidence review completed', 'admin:1', 200), true);
+    assert.equal(registry.setIssuerTrustTier(created.issuer.id, 'trusted', 'Independent quality review completed', 'admin:1', 300), true);
+    const row = db.prepare('SELECT trust_tier AS trustTier FROM issuers WHERE id = ?')
+      .get(created.issuer.id) as { trustTier: string };
+    assert.equal(row.trustTier, 'trusted');
+    const events = db.prepare('SELECT previous_tier AS previousTier, new_tier AS newTier, reason FROM issuer_trust_events WHERE issuer_id = ? ORDER BY occurred_at')
+      .all(created.issuer.id) as Array<{ previousTier: string; newTier: string; reason: string }>;
+    assert.deepEqual(events, [
+      { previousTier: 'unverified', newTier: 'verified', reason: 'Business and evidence review completed' },
+      { previousTier: 'verified', newTier: 'trusted', reason: 'Independent quality review completed' },
+    ]);
+    assert.throws(() => registry.setIssuerTrustTier(created.issuer.id, 'official', '   '), /invalid_trust_tier_reason/);
+  } finally {
+    db.close();
+  }
+});

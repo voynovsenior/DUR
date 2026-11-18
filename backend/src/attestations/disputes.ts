@@ -40,6 +40,10 @@ export class AttestationDisputeRegistry {
     if (!attestation) throw new Error("attestation_not_found");
     if (attestation.subjectId !== input.subjectId) throw new Error("dispute_subject_mismatch");
     if (attestation.status !== "active") throw new Error("attestation_not_active");
+    const upheld = this.db.prepare(
+      "SELECT 1 FROM attestation_disputes WHERE attestation_id = ? AND status = 'upheld' LIMIT 1",
+    ).get(input.attestationId);
+    if (upheld) throw new Error("attestation_dispute_already_upheld");
 
     const id = randomUUID();
     try {

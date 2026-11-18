@@ -16,7 +16,7 @@
 
 DUR is an early-stage project exploring a modular trust layer for applications in the TON ecosystem. It aims to make reputation portable, attestations verifiable, and escrow components reusable by third-party applications.
 
-> **Development status:** prototype / early development. This repository includes an experimental attestation-based reputation projection and reason-audited issuer trust-tier controls, but not calibrated production reputation or a formal issuer governance process. It also includes an experimental Tolk escrow contract prototype and a Testnet-only transaction proof verifier; neither is deployed or independently audited. The current Mini App is an interface prototype. No real funds should be sent to or managed by this software.
+> **Development status:** prototype / early development. This repository includes an experimental attestation-based reputation projection and reason-audited issuer trust-tier controls, but not calibrated production reputation or an approved issuer governance process. A draft issuer trust policy is available for review. It also includes an experimental Tolk escrow contract prototype and a Testnet-only transaction proof verifier; neither is deployed or independently audited. The current Mini App is an interface prototype. No real funds should be sent to or managed by this software.
 
 ## Product vision
 
@@ -49,7 +49,7 @@ The first UI package includes:
 | Telegram bot | Starter implementation |
 | TON Connect | UI integration; manifest must be configured |
 | Reputation engine | Experimental v0.1 attestation projection; not calibrated for production |
-| Attestation registry | Issuer-authenticated issuance/revocation, immutable JSON Schema validation, wallet-owner consent, and audited admin trust-tier controls; formal policy pending; owner-initiated disputes and admin resolution are implemented |
+| Attestation registry | Issuer-authenticated issuance/revocation, immutable JSON Schema validation, wallet-owner consent, and audited admin trust-tier controls; draft issuer policy; owner-initiated disputes and admin resolution are implemented |
 | Developer SDK | TypeScript issuer SDK for attestation operations; broader profile/query SDK pending |
 | Escrow contracts | Experimental Tolk prototype; not deployed or audited |
 | Backend API | Telegram authentication, TON Proof wallet linking, issuer/schema APIs, experimental reputation profiles, and read-only indexer endpoints; escrow API pending |
@@ -73,7 +73,7 @@ The first UI package includes:
 ├── docs/
 │   ├── ARCHITECTURE.md     # System boundaries and components
 │   ├── SECURITY.md         # Security assumptions and threat model
-│   ├── ROADMAP.md          # Development milestones
+│   ├── ROADMAP.md          # Six-stage development and release gates
 │   └── PROTOCOL.md         # Concepts and evidence model
 ├── public/
 │   └── tonconnect-manifest.json
@@ -120,7 +120,7 @@ The committed manifest contains placeholders. Wallet connection is not fully con
 
 ### Run the API
 
-Set `TELEGRAM_BOT_TOKEN`, `TON_APP_DOMAIN` (your exact dApp hostname), and `TON_NETWORK_ID=-3` in the server environment (the backend loads local `.env` files through dotenv), then run:
+Set `TELEGRAM_BOT_TOKEN`, `TON_APP_DOMAIN` (your exact dApp hostname), and `TON_NETWORK_ID=-3` in the server environment (the backend loads local .env files through dotenv), then run:
 
 ```bash
 npm run api
@@ -156,11 +156,12 @@ Never commit a real bot token. Do not send bot tokens, seed phrases, or private 
 - [API preview](docs/API.md)
 - [Protocol concepts](docs/PROTOCOL.md)
 - [Reputation methodology draft](docs/REPUTATION_METHODOLOGY.md)
+- [Issuer trust policy draft](docs/ISSUER_TRUST_POLICY.md)
 - [TON indexer architecture and current implementation](docs/INDEXER.md)
 - [Escrow Testnet specification draft](docs/ESCROW_SPEC.md)
 - [Issuer SDK](sdk/README.md)
 - [Security model](docs/SECURITY.md)
-- [Roadmap](docs/ROADMAP.md)
+- [Six-stage roadmap](docs/ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security reporting](SECURITY.md)
 

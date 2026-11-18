@@ -14,18 +14,43 @@ The latest fully green run set is commit `4d380a86b98d3bc672de226a762dfa5c87138d
 
 These checks validate repository consistency only. They do not replace mobile QA, live Testnet integration, or an independent security review. The escrow contract remains an experimental artifact: its payout bounce handler is empty, and the repository does not yet demonstrate safe recovery of a failed payout. It must not be deployed or used to hold funds. The UI correctly remains a non-interactive design preview.
 
-## Work that must be complete before asking the operator for deployment secrets
+## Finite Testnet MVP release gates
 
-- [ ] Complete API and UI integration for actual user journeys; the current Escrow screen is a preview and the Escrow API is not implemented.
-- [ ] Either complete a separately reviewed escrow release (including payout failure/bounce recovery, value conservation, deadline boundaries, replay/malformed messages, and arbiter-unavailable dispute recovery) or explicitly exclude escrow from the deployed pilot and verify that no escrow contract/API/funding path is exposed.
-- [ ] Add reviewed contract address and historical code-hash identity policy before treating decoded events as trusted DUR events.
-- [ ] Add end-to-end Testnet fixtures for transaction proofs, event decoding, checkpoint restart, duplicate batches, and provider disagreement.
-- [ ] Finish deployment hardening: backup/restore procedure, production logging/monitoring, and mobile Telegram QA.
-- [ ] Re-run all CI workflows on the final candidate commit and review dependency audit output.
-- [ ] Prepare a deployment-specific checklist with exact values and a rollback procedure.
+The initial deployable MVP contains only:
+- Telegram authentication and server-side session handling;
+- TON Testnet wallet linking through TON Connect and server-side proof verification;
+- wallet-owner consent and revocation;
+- issuer/schema administration and attestation issue/revoke/history;
+- experimental reputation projection based only on eligible attestations;
+- Telegram Mini App, API, and bot deployment template.
 
-Do not mark a checkbox complete merely because a related module or draft document exists. The current repository is not at the secret-entry handoff point: the operator must not provide deployment credentials until every applicable gate above is evidenced, not merely documented.
+Explicitly excluded from this release:
+- **Escrow:** design preview only. No contract deployment, funding, payout, custody, or real-value workflow.
+- **Indexer worker:** not started in the MVP. Raw provider imports remain unverified and are not reputation evidence. The proof-verifier/indexer code remains research infrastructure.
+- Mainnet, real assets, and production financial use.
 
+## Gates before operator secret entry
+
+- [ ] Final candidate CI workflows all green on the same commit.
+- [ ] Production dependency audit reviewed; unresolved development-only advisories documented.
+- [ ] Deployment template and `.env.example` agree on required variables.
+- [ ] Secret handling and rollback instructions are present.
+- [ ] Automated smoke test passes against the candidate build.
+- [ ] No escrow deployment or indexer worker is included in the default Compose startup.
+
+## Gates after operator secret entry and deployment
+
+- [ ] HTTPS and health endpoint verified.
+- [ ] Telegram login works inside Telegram on Android.
+- [ ] TON Connect manifest loads from the deployed domain.
+- [ ] Throwaway Testnet wallet connects and server-side ownership proof succeeds.
+- [ ] Owner consent can be granted and revoked.
+- [ ] Issuer can issue an attestation only with valid owner consent.
+- [ ] Owner can view attestation history and reputation projection.
+- [ ] SQLite backup and restore procedure is exercised.
+- [ ] No escrow or indexer service is running.
+
+This is the complete boundary of the first Testnet MVP. Do not add more features to this release. Any excluded subsystem requires a separate versioned scope and review.
 ## Operator inputs needed later
 
 These are not requested now. The operator should provide only non-secret configuration in chat if needed (for example, the public app domain or a public Testnet wallet address). Secret values must be entered directly into the hosting provider's secret/environment settings or a private server-side `.env` file.

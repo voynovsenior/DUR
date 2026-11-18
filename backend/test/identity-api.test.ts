@@ -374,7 +374,7 @@ test('admin trust review enables an owner-only reputation projection', async () 
       reputation: {
         methodologyVersion: string;
         dimensions: {
-          reliability: { value: number | null; evidenceCount: number };
+          reliability: { value: number | null; evidenceCount: number; issuerConcentrationIndex: number | null; largestIssuerShare: number | null };
           delivery: { value: number | null };
           communication: { value: number | null };
         };

@@ -319,7 +319,7 @@ test('Telegram login applies a per-IP fixed-window rate limit', async () => {
   });
 });
 
-test('admin trust review enables an explainable public reputation projection', async () => {
+test('admin trust review enables an owner-only reputation projection', async () => {
   await withServer(async (base, db) => {
     const createdResponse = await fetch(`${base}/v1/admin/issuers`, {
       method: 'POST',
@@ -349,7 +349,7 @@ test('admin trust review enables an explainable public reputation projection', a
     db.prepare(`
       INSERT INTO wallet_links (id, user_id, network, address, public_key, linked_at)
       VALUES (?, ?, '-3', ?, ?, ?)
-    `).run('reputation-wallet-link', loginBody.user.id, 'a'.repeat(64), 'b'.repeat(64), now);
+    `).run('reputation-wallet-link', loginBody.user.id, '0:' + 'a'.repeat(64), 'b'.repeat(64), now);
     registry.issue(created.issuer.id, {
       schemaId: 'dur.reputation.sample',
       schemaVersion: 1,

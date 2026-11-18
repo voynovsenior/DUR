@@ -59,12 +59,18 @@ test('subject SDK sends cookie-authenticated reputation and dispute requests', a
 
   await client.getReputation('wallet:-3:0:abc');
   await client.openDispute('attestation/1', 'The stated delivery did not occur', ['https://evidence.example/1']);
+  await client.listProfileVisibilityConsents();
+  await client.grantProfileVisibility('0:' + 'a'.repeat(64));
+  await client.revokeProfileVisibility('visibility-1');
 
   assert.equal(calls[0].url, 'https://api.example.com/v1/profiles/wallet%3A-3%3A0%3Aabc/reputation');
   assert.equal(calls[0].init?.credentials, 'include');
   assert.equal(new Headers(calls[0].init?.headers).get('authorization'), null);
   assert.equal(calls[1].url, 'https://api.example.com/v1/attestations/attestation%2F1/disputes');
   assert.equal(calls[1].init?.credentials, 'include');
+  assert.equal(calls[2].url, 'https://api.example.com/v1/auth/profile-visibility');
+  assert.equal(calls[3].url, 'https://api.example.com/v1/auth/profile-visibility');
+  assert.equal(calls[4].url, 'https://api.example.com/v1/auth/profile-visibility/visibility-1/revoke');
 });
 
 test('admin SDK keeps bearer authentication on administrative routes', async () => {

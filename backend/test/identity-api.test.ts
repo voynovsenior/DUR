@@ -260,6 +260,62 @@ test('issuer issuance requires a registered schema and current wallet-owner cons
   });
 });
 
+test('attestation history is visible only to the authenticated owner of a linked Testnet wallet', async () => {
+  await withServer(async (base, db) => {
+    const login = await fetch(`${base}/v1/auth/telegram`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ initData: initData() }),
+    });
+    assert.equal(login.status, 200);
+    const loginBody = await login.json() as { user: { id: string } };
+    const sessionCookie = login.headers.get('set-cookie')!.split(';')[0];
+    const walletAddress = `0:${'a'.repeat(64)}`;
+    db.prepare(`
+      INSERT INTO wallet_links (id, user_id, network, address, public_key, linked_at)
+      VALUES (?, ?, '-3', ?, ?, ?)
+    `).run('owner-history-wallet', loginBody.user.id, walletAddress, 'b'.repeat(64), now);
+
+    const registry = new AttestationRegistry(db);
+    const { issuer } = registry.createIssuer({ displayName: 'History Issuer', issuerType: 'marketplace' }, now);
+    const subjectId = `wallet:-3:${walletAddress}`;
+    const issued = registry.issue(issuer.id, {
+      schemaId: 'dur.delivery.completed',
+      schemaVersion: 1,
+      subjectId,
+      claim: { completed: true },
+      evidenceRefs: ['ton:transaction:history-fixture'],
+    }, now);
+
+    const ownerResponse = await fetch(
+      `${base}/v1/auth/attestations?walletAddress=${encodeURIComponent(walletAddress)}`,
+      { headers: { cookie: sessionCookie } },
+    );
+    assert.equal(ownerResponse.status, 200);
+    const ownerBody = await ownerResponse.json() as {
+      subjectId: string;
+      attestations: Array<{ id: string; status: string; issuerName: string; claim: { completed: boolean } }>;
+    };
+    assert.equal(ownerBody.subjectId, subjectId);
+    assert.equal(ownerBody.attestations.length, 1);
+    assert.equal(ownerBody.attestations[0].id, issued.id);
+    assert.equal(ownerBody.attestations[0].status, 'active');
+    assert.equal(ownerBody.attestations[0].issuerName, 'History Issuer');
+    assert.equal(ownerBody.attestations[0].claim.completed, true);
+
+    const unlinked = await fetch(
+      `${base}/v1/auth/attestations?walletAddress=0:${'c'.repeat(64)}`,
+      { headers: { cookie: sessionCookie } },
+    );
+    assert.equal(unlinked.status, 403);
+
+    const anonymous = await fetch(
+      `${base}/v1/auth/attestations?walletAddress=${encodeURIComponent(walletAddress)}`,
+    );
+    assert.equal(anonymous.status, 401);
+  });
+});
+
 test('read-only indexer endpoints expose Testnet status and validate query filters', async () => {
   await withServer(async base => {
     const status = await fetch(`${base}/v1/indexer/status`);

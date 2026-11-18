@@ -88,6 +88,6 @@ docker compose --profile indexer up -d indexer
 docker compose --profile telegram up -d bot
 ```
 
-Caddy obtains and renews HTTPS certificates automatically when DNS and ports are configured correctly. The API and indexer share a persistent SQLite volume. The indexer remains Testnet-only; imported events remain ineligible for reputation until transaction proof and contract-specific semantic verification are completed.
+After the services are healthy, run the public smoke checks with `DUR_SMOKE_BASE_URL=https://YOUR-MINI-APP-DOMAIN npm run smoke:test`. Caddy obtains and renews HTTPS certificates automatically when DNS and ports are configured correctly. The API and indexer share a persistent SQLite volume. The indexer remains Testnet-only; imported events remain ineligible for reputation until transaction proof and contract-specific semantic verification are completed.
 
 **Deployment boundary:** this template is for controlled Testnet QA only. The escrow contract has not undergone an independent audit, dispute resolution can lock a deal while an arbiter is unavailable, and payout/gas/bounce behavior still needs specialist review. Do not use real funds or Mainnet.

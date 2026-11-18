@@ -247,6 +247,37 @@ paths:
           description: Admin authentication required
         '404':
           description: Issuer not found
+  /v1/admin/indexer/events/{id}/verify-transaction:
+    post:
+      summary: Verify a stored Testnet transaction against trusted chain proofs
+      security:
+        - AdminBearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{64}$' }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maxScan: { type: integer, minimum: 1, maximum: 10000, default: 500 }
+      responses:
+        '200':
+          description: Transaction proof recorded; application event remains semantically unverified
+        '401':
+          description: Admin authentication required
+        '404':
+          description: Indexer event not found
+        '422':
+          description: Transaction was not found within the scan limit
+        '503':
+          description: Proof verifier binary is not configured
+        '504':
+          description: Proof verifier timed out
   /v1/profiles/{subjectId}/reputation:
     get:
       summary: Retrieve the caller's experimental reputation projection for a linked wallet

@@ -141,3 +141,19 @@ get fun `test buyer can refund after dispute deadline when completion was not ma
     });
     expect(contract.currentState()).toEqual(EscrowState.Refunded);
 }
+
+get fun `test seller can claim after deadline when completion was marked and no dispute was opened`() {
+    val (contract, buyer, seller, _) = setupTest();
+
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    contract.sendMarkComplete(seller.address, { value: grams("0.1") });
+
+    testing.setNow(4_001);
+    val claim = contract.sendClaimAfterDeadline(seller.address, { value: grams("0.1") });
+    expect(claim).toHaveSuccessfulTx<ClaimAfterDeadline>({
+        from: seller.address,
+        to: contract.address,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Released);
+}

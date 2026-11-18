@@ -128,7 +128,7 @@ Run a bounded manual sync with `npm run indexer:sync`. Configure `TONCENTER_API_
 
 ### GET /v1/profiles/{subjectId}/reputation
 
-Accepts a canonical TON Testnet subject ID: `wallet:-3:0:<64-char-hex>`. Returns methodology version, four dimensions, per-dimension evidence and issuer counts, eligible evidence counts, computation time and limitations.
+Requires an authenticated Telegram session and proof that the subject wallet is linked to that account. Accepts a canonical TON Testnet subject ID: `wallet:-3:0:<64-char-hex>`. Returns methodology version, four dimensions, per-dimension evidence and issuer counts, eligible evidence counts, computation time and limitations. Public profile access is intentionally disabled until a separate profile-visibility consent mechanism exists.
 
 Only active, unexpired attestations from active issuers with `verified`, `trusted`, or `official` tiers are eligible. Unverified issuers and all indexer events are excluded. Claims contribute only when they contain `reputation.dimensions` values from 0 to 100. Repeated attestations from the same issuer/schema pair are collapsed to the latest. The projection uses trust-tier weights and a 180-day half-life. It is experimental and must not be treated as a calibrated universal score.
 

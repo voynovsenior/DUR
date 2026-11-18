@@ -2,7 +2,7 @@
 
 Base URL: `http://localhost:8787`
 
-The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. A first experimental reputation projection is available from reviewed issuer attestations; it is not a calibrated production trust score. Escrow is not implemented. A manual TON Testnet ingestion adapter is available, but its indexed provider data remains explicitly unverified. The attestation registry has issuer-authenticated create/read/revoke endpoints but wallet-owner consent is required for issuance; owners can inspect and revoke their grants.
+The API is an early development service. Telegram authentication and session endpoints are implemented. TON Proof wallet linking is implemented for a limited set of standard wallets but requires domain configuration and CI/deployment validation. An experimental reputation projection v0.2.0 is available from reviewed issuer attestations, including issuer-concentration diagnostics; it is not a calibrated production trust score. Escrow is not implemented. A manual TON Testnet ingestion adapter is available, but its indexed provider data remains explicitly unverified. The attestation registry has issuer-authenticated create/read/revoke endpoints but wallet-owner consent is required for issuance; owners can inspect and revoke their grants.
 
 ## GET /healthz
 
@@ -154,9 +154,9 @@ This proves transaction membership in an account history anchored to a trusted T
 
 ### GET /v1/profiles/{subjectId}/reputation
 
-Requires an authenticated Telegram session and proof that the subject wallet is linked to that account. Accepts a canonical TON Testnet subject ID: `wallet:-3:0:<64-char-hex>`. Returns methodology version, four dimensions, per-dimension evidence and issuer counts, eligible evidence counts, computation time and limitations. Public profile access is intentionally disabled until a separate profile-visibility consent mechanism exists.
+Requires an authenticated Telegram session and proof that the subject wallet is linked to that account, unless the wallet owner has an active public-visibility consent. Accepts a canonical TON Testnet subject ID: `wallet:-3:0:<64-char-hex>`. Returns methodology version, four dimensions, per-dimension evidence and issuer counts, issuer concentration diagnostics, eligible evidence counts, computation time and limitations. Public access is disabled by default and becomes available only through an explicit, expiring owner consent.
 
-Only active, unexpired attestations from active issuers with `verified`, `trusted`, or `official` tiers are eligible. Unverified issuers and all indexer events are excluded. Claims contribute only when they contain `reputation.dimensions` values from 0 to 100. Repeated attestations from the same issuer/schema pair are collapsed to the latest. The projection uses trust-tier weights and a 180-day half-life. It is experimental and must not be treated as a calibrated universal score.
+Only active, unexpired attestations from active issuers with `verified`, `trusted`, or `official` tiers are eligible. Unverified issuers and all indexer events are excluded. Claims contribute only when they contain `reputation.dimensions` values from 0 to 100. Repeated attestations from the same issuer/schema pair are collapsed to the latest. The projection uses trust-tier weights and a 180-day half-life. Each dimension also reports an issuer concentration index and largest issuer share; these describe evidence concentration and do not prove independent control or detect collusion. The projection is experimental and must not be treated as a calibrated universal score.
 
 ## TypeScript SDK
 
@@ -164,7 +164,7 @@ The SDK package in `sdk/` exposes three clients:
 
 - `DurIssuerClient` — authenticated attestation issue/read/revoke and API-key revocation, plus issuer and schema catalog discovery.
 - `DurSubjectClient` — cookie-authenticated reputation reads, dispute workflows and profile-visibility consent management. A profile read is available to its linked wallet owner, or anonymously when an active public-visibility consent exists.
-- `DurAdminClient` — server-side trust-tier review, dispute resolution and transaction-proof verification. Never ship this client or its token to a browser.
+- `DurAdminClient` — server-side issuer lifecycle, schema registration, trust-tier review, filtered dispute queue, dispute resolution and transaction-proof verification. Never ship this client or its token to a browser.
 
 Issuer catalog discovery maps to `GET /v1/issuers`; schema discovery maps to `GET /v1/schemas` and `GET /v1/schemas/{schemaId}/{version}`. The SDK URL builder percent-encodes schema IDs and validates positive integer schema versions.
 
@@ -199,4 +199,4 @@ Responses are JSON and use `Cache-Control: no-store`. Errors include a machine-r
 
 ## Security boundary
 
-A connected wallet must not be treated as authenticated until the backend has accepted a fresh `ton_proof`. The current wallet-link flow is a development implementation for a limited wallet set and has not passed CI or real-wallet Testnet QA. The reputation profile is an experimental attestation projection, not a production trust score. Escrow operations remain unavailable. Attestation writes are restricted to authenticated issuers; public subject-consented profiles are not implemented.
+A connected wallet must not be treated as authenticated until the backend has accepted a fresh `ton_proof`. The wallet-link flow has automated CI coverage for a limited wallet set; real-wallet Testnet QA and HTTPS domain deployment remain pending. The reputation profile is an experimental attestation projection, not a production trust score. Public profile access is opt-in through an explicit expiring owner consent and is disabled by default. Escrow is an experimental contract prototype only; no escrow API is exposed and the contract is not deployed. Attestation writes are restricted to authenticated issuers and wallet-owner consent.

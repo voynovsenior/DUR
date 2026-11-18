@@ -26,11 +26,23 @@ test('escrow model permits only documented transitions', () => {
   agreement = transitionEscrow(agreement, 'accepted');
   agreement = transitionEscrow(agreement, 'funded');
   agreement = transitionEscrow(agreement, 'disputed');
-  agreement = transitionEscrow(agreement, 'resolved');
   agreement = transitionEscrow(agreement, 'refunded');
-  assert.equal(agreement.version, 6);
+  assert.equal(agreement.version, 5);
   assert.equal(isEscrowTerminal(agreement.state), true);
   assert.throws(() => transitionEscrow(agreement, 'released'), /invalid_state_transition/);
+});
+
+test('escrow model permits either mutually agreed terminal dispute outcome', () => {
+  let agreement = createEscrowAgreement(base, 1_800_000_000);
+  agreement = transitionEscrow(agreement, 'accepted');
+  agreement = transitionEscrow(agreement, 'funded');
+  agreement = transitionEscrow(agreement, 'disputed');
+  const released = transitionEscrow(agreement, 'released');
+  const refunded = transitionEscrow(agreement, 'refunded');
+  assert.equal(released.state, 'released');
+  assert.equal(refunded.state, 'refunded');
+  assert.equal(isEscrowTerminal(released.state), true);
+  assert.equal(isEscrowTerminal(refunded.state), true);
 });
 
 test('escrow model rejects unsafe amounts, invalid parties and deadline order', () => {

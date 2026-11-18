@@ -8,3 +8,12 @@ license = "MIT"
 display-name = "DUR Escrow"
 src = "contracts/Escrow.tolk"
 depends = []
+
+[toolchain]
+acton = "1.2.1"
+
+[import-mappings]
+acton = ".acton"
+contracts = "contracts"
+wrappers = "wrappers"
+tests = "tests"

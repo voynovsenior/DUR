@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { DurDatabase } from '../identity/database';
+import type { EscrowLifecycleEventObservation } from './proof-verifier';
 
 export type TonBlockCheckpoint = {
   network: string;
@@ -160,7 +161,10 @@ export class ChainEventStore {
              e.verification_status AS verificationStatus, e.observed_at AS observedAt,
              p.network AS proofNetwork, p.masterchain_seqno AS masterchainSeqno,
              p.masterchain_root_hash AS masterchainRootHash, p.proof_policy AS proofPolicy,
-             p.verifier_version AS verifierVersion, p.verified_at AS verifiedAt
+             p.verifier_version AS verifierVersion, p.verified_at AS verifiedAt,
+             p.current_account_code_hash AS currentAccountCodeHash,
+             p.observed_events_json AS observedEventsJson,
+             p.event_decode_errors_json AS eventDecodeErrorsJson
       FROM chain_events e
       LEFT JOIN chain_event_transaction_proofs p ON p.id = (
         SELECT id FROM chain_event_transaction_proofs
@@ -176,9 +180,12 @@ export class ChainEventStore {
       proofNetwork: string | null; masterchainSeqno: number | null;
       masterchainRootHash: string | null; proofPolicy: string | null;
       verifierVersion: string | null; verifiedAt: number | null;
+      currentAccountCodeHash: string | null; observedEventsJson: string | null;
+      eventDecodeErrorsJson: string | null;
     }>;
     return rows.map(({ payloadJson, proofNetwork, masterchainSeqno, masterchainRootHash,
-      proofPolicy, verifierVersion, verifiedAt, ...row }) => ({
+      proofPolicy, verifierVersion, verifiedAt, currentAccountCodeHash,
+      observedEventsJson, eventDecodeErrorsJson, ...row }) => ({
       ...row,
       payload: JSON.parse(payloadJson) as Record<string, unknown>,
       transactionProof: proofNetwork ? {
@@ -188,6 +195,9 @@ export class ChainEventStore {
         proofPolicy,
         verifierVersion,
         verifiedAt,
+        currentAccountCodeHash,
+        observedEscrowEvents: JSON.parse(observedEventsJson ?? '[]') as EscrowLifecycleEventObservation[],
+        eventDecodeErrors: JSON.parse(eventDecodeErrorsJson ?? '[]') as string[],
       } : null,
     }));
   }
@@ -204,6 +214,9 @@ export class ChainEventStore {
       masterchainRootHash: string;
       proofPolicy: string;
       verifierVersion: string;
+      currentAccountCodeHash?: string;
+      escrowEvents?: EscrowLifecycleEventObservation[];
+      eventDecodeErrors?: string[];
     },
     nowSeconds = Math.floor(Date.now() / 1000),
   ) {
@@ -214,6 +227,18 @@ export class ChainEventStore {
         !/^[a-fA-F0-9]{64}$/.test(proof.masterchainRootHash) ||
         !proof.verifierVersion || proof.verifierVersion.length > 32) {
       throw new Error('invalid_transaction_proof_metadata');
+    }
+    if (proof.currentAccountCodeHash !== undefined &&
+        !/^[a-fA-F0-9]{64}$/.test(proof.currentAccountCodeHash)) {
+      throw new Error('invalid_current_account_code_hash');
+    }
+    const observedEvents = proof.escrowEvents ?? [];
+    const eventDecodeErrors = proof.eventDecodeErrors ?? [];
+    if (!Array.isArray(observedEvents) || observedEvents.length > 32 ||
+        !Array.isArray(eventDecodeErrors) || eventDecodeErrors.length > 32 ||
+        JSON.stringify(observedEvents).length > 12_000 ||
+        JSON.stringify(eventDecodeErrors).length > 4_000) {
+      throw new Error('invalid_verified_event_observations');
     }
     const transaction = this.db.transaction(() => {
       const event = this.db.prepare(`
@@ -233,13 +258,15 @@ export class ChainEventStore {
         INSERT INTO chain_event_transaction_proofs (
           id, chain_event_id, network, account, lt, tx_hash,
           masterchain_seqno, masterchain_root_hash, proof_policy,
-          verifier_version, verified_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          verifier_version, verified_at, current_account_code_hash,
+          observed_events_json, event_decode_errors_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         randomUUID(), id, 'ton-testnet', proof.address.toLowerCase(), proof.transactionLt,
         proof.transactionHash.toLowerCase(), proof.masterchainSeqno,
         proof.masterchainRootHash.toLowerCase(), proof.proofPolicy,
-        proof.verifierVersion, nowSeconds,
+        proof.verifierVersion, nowSeconds, proof.currentAccountCodeHash?.toLowerCase() ?? null,
+        JSON.stringify(observedEvents), JSON.stringify(eventDecodeErrors),
       );
       return true;
     });

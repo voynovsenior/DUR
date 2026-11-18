@@ -22,6 +22,7 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] Immutable, versioned JSON Schema registry and canonical claim validation
 - [x] Attestation issuance, expiry, revocation and event history
 - [x] Wallet-owner consent scoped to linked wallet, issuer and schema version
+- [x] Owner-scoped attestation history API and Mini App display
 - [x] Administrative issuer suspension, terminal revocation and reason-audited trust-tier changes
 - [x] Experimental Reputation methodology v0.2.0 with deterministic dimension projections and issuer-concentration diagnostics
 - [x] Trust-tier and 180-day half-life recency weighting

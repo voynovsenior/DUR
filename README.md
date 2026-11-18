@@ -16,7 +16,7 @@
 
 DUR is an early-stage project exploring a modular trust layer for applications in the TON ecosystem. It aims to make reputation portable, attestations verifiable, and escrow components reusable by third-party applications.
 
-> **Development status:** prototype / early development. This repository includes an experimental attestation-based reputation projection and reason-audited issuer trust-tier controls, but not calibrated production reputation, a formal issuer governance/dispute process, or executable escrow smart contracts. The current Mini App is an interface prototype. No real funds should be sent to or managed by this software.
+> **Development status:** prototype / early development. This repository includes an experimental attestation-based reputation projection and reason-audited issuer trust-tier controls, but not calibrated production reputation, a formal issuer governance process, or executable escrow smart contracts. The current Mini App is an interface prototype. No real funds should be sent to or managed by this software.
 
 ## Product vision
 
@@ -49,7 +49,7 @@ The first UI package includes:
 | Telegram bot | Starter implementation |
 | TON Connect | UI integration; manifest must be configured |
 | Reputation engine | Experimental v0.1 attestation projection; not calibrated for production |
-| Attestation registry | Issuer-authenticated issuance/revocation, immutable JSON Schema validation, wallet-owner consent, and audited admin trust-tier controls; formal policy and disputes pending |
+| Attestation registry | Issuer-authenticated issuance/revocation, immutable JSON Schema validation, wallet-owner consent, and audited admin trust-tier controls; formal policy pending; owner-initiated disputes and admin resolution are implemented |
 | Developer SDK | TypeScript issuer SDK for attestation operations; broader profile/query SDK pending |
 | Escrow contracts | Not implemented |
 | Backend API | Telegram authentication, TON Proof wallet linking, issuer/schema APIs, experimental reputation profiles, and read-only indexer endpoints; escrow API pending |

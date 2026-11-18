@@ -54,6 +54,7 @@ struct (0x44555206) ResolveDispute {
 }
 struct (0x44555207) Refund {}
 struct (0x44555208) Cancel {}
+struct (0x44555209) ClaimAfterDeadline {}
 
 type AllowedMessage =
     | Accept
@@ -64,3 +65,4 @@ type AllowedMessage =
     | ResolveDispute
     | Refund
     | Cancel
+    | ClaimAfterDeadline

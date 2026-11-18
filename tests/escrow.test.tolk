@@ -477,7 +477,6 @@ get fun `test mutual resolution vote is unavailable before a dispute`() {
     expect(contract.currentState()).toEqual(EscrowState.Funded);
 }
 
-
 get fun `test acceptance emits a versioned lifecycle event`() {
     val (contract, buyer, seller, _) = setupTest();
     val accept = contract.sendAccept(seller.address, { value: grams("0.1") });

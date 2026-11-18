@@ -1,5 +1,7 @@
 # Deployment guide
 
+Before requesting operator credentials, follow the [Testnet release handoff](RELEASE_HANDOFF.md). It records the remaining engineering gates and the later operator-only configuration step.
+
 ## Current status
 The repository is a prototype. Deployment makes the preview accessible; it does not activate production reputation scoring, cryptographically verified indexing or escrow contracts. Issuer writes require admin-created issuers, registered schemas and wallet-owner consent.
 
@@ -63,7 +65,7 @@ The production dependency audit is enforced in CI. The current full development 
 
 ## Docker + Caddy Testnet deployment template
 
-The repository includes a containerized Testnet deployment template. It is not a Mainnet release configuration and does not deploy contracts.
+The repository includes a containerized Testnet deployment template. It is not a Mainnet release configuration and does not deploy contracts. The root `.dockerignore` excludes local environment files, wallet material, databases and generated output from Docker build contexts; keep the server-side `.env` on the host only.
 
 1. Provision a Linux host with Docker Engine and the Docker Compose plugin. Point the chosen domain's DNS A/AAAA records to that host and allow inbound TCP 80/443.
 2. Copy `.env.example` to `.env`. Set `APP_DOMAIN`, `MINI_APP_URL`, `CORS_ORIGIN`, `TON_APP_DOMAIN`, and `VITE_TONCONNECT_MANIFEST_URL` to the same HTTPS domain. Keep `VITE_API_BASE_URL` empty so the Mini App uses same-origin `/v1` requests through Caddy.

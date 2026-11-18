@@ -131,32 +131,97 @@ export class ChainEventStore {
   listEvents(input: { network: string; limit?: number; verificationStatus?: NormalizedChainEvent['verificationStatus'] }) {
     const limit = Math.max(1, Math.min(100, Math.trunc(input.limit ?? 50)));
     const rows = this.db.prepare(`
-      SELECT id, network, account, lt, tx_hash AS txHash, event_index AS eventIndex,
-             event_type AS eventType, payload_json AS payloadJson, source_contract AS sourceContract,
-             source_code_hash AS sourceCodeHash, decoder_version AS decoderVersion,
-             verification_status AS verificationStatus, observed_at AS observedAt
-      FROM chain_events
-      WHERE network = ? AND (? IS NULL OR verification_status = ?)
-      ORDER BY observed_at DESC, id DESC LIMIT ?
+      SELECT e.id, e.network, e.account, e.lt, e.tx_hash AS txHash,
+             e.event_index AS eventIndex, e.event_type AS eventType,
+             e.payload_json AS payloadJson, e.source_contract AS sourceContract,
+             e.source_code_hash AS sourceCodeHash, e.decoder_version AS decoderVersion,
+             e.verification_status AS verificationStatus, e.observed_at AS observedAt,
+             p.network AS proofNetwork, p.masterchain_seqno AS masterchainSeqno,
+             p.masterchain_root_hash AS masterchainRootHash, p.proof_policy AS proofPolicy,
+             p.verifier_version AS verifierVersion, p.verified_at AS verifiedAt
+      FROM chain_events e
+      LEFT JOIN chain_event_transaction_proofs p ON p.id = (
+        SELECT id FROM chain_event_transaction_proofs
+        WHERE chain_event_id = e.id ORDER BY verified_at DESC, id DESC LIMIT 1
+      )
+      WHERE e.network = ? AND (? IS NULL OR e.verification_status = ?)
+      ORDER BY e.observed_at DESC, e.id DESC LIMIT ?
     `).all(input.network, input.verificationStatus ?? null, input.verificationStatus ?? null, limit) as Array<{
-      id: string;
-      network: string;
-      account: string;
-      lt: string;
-      txHash: string;
-      eventIndex: number;
-      eventType: string;
-      sourceContract: string;
-      sourceCodeHash: string | null;
-      decoderVersion: string;
-      verificationStatus: NormalizedChainEvent['verificationStatus'];
-      observedAt: number;
-      payloadJson: string;
+      id: string; network: string; account: string; lt: string; txHash: string;
+      eventIndex: number; eventType: string; payloadJson: string;
+      sourceContract: string; sourceCodeHash: string | null; decoderVersion: string;
+      verificationStatus: NormalizedChainEvent['verificationStatus']; observedAt: number;
+      proofNetwork: string | null; masterchainSeqno: number | null;
+      masterchainRootHash: string | null; proofPolicy: string | null;
+      verifierVersion: string | null; verifiedAt: number | null;
     }>;
-    return rows.map(({ payloadJson, ...row }) => ({
+    return rows.map(({ payloadJson, proofNetwork, masterchainSeqno, masterchainRootHash,
+      proofPolicy, verifierVersion, verifiedAt, ...row }) => ({
       ...row,
       payload: JSON.parse(payloadJson) as Record<string, unknown>,
+      transactionProof: proofNetwork ? {
+        network: proofNetwork,
+        masterchainSeqno,
+        masterchainRootHash,
+        proofPolicy,
+        verifierVersion,
+        verifiedAt,
+      } : null,
     }));
+  }
+
+  markTransactionVerified(
+    id: string,
+    proof: {
+      verified: boolean;
+      network: string;
+      address: string;
+      transactionLt: string;
+      transactionHash: string;
+      masterchainSeqno: number;
+      masterchainRootHash: string;
+      proofPolicy: string;
+      verifierVersion: string;
+    },
+    nowSeconds = Math.floor(Date.now() / 1000),
+  ) {
+    if (proof.verified !== true || proof.network !== 'testnet' || proof.proofPolicy !== 'secure') {
+      throw new Error('invalid_transaction_proof_result');
+    }
+    if (!Number.isSafeInteger(proof.masterchainSeqno) || proof.masterchainSeqno < 0 ||
+        !/^[a-fA-F0-9]{64}$/.test(proof.masterchainRootHash) ||
+        !proof.verifierVersion || proof.verifierVersion.length > 32) {
+      throw new Error('invalid_transaction_proof_metadata');
+    }
+    const transaction = this.db.transaction(() => {
+      const event = this.db.prepare(`
+        SELECT network, account, lt, tx_hash AS txHash, verification_status AS verificationStatus
+        FROM chain_events WHERE id = ?
+      `).get(id) as {
+        network: string; account: string; lt: string; txHash: string; verificationStatus: string;
+      } | undefined;
+      if (!event) return false;
+      if (event.verificationStatus === 'quarantined') throw new Error('event_quarantined');
+      if (event.network !== 'ton-testnet' || proof.address !== event.account ||
+          proof.transactionLt !== event.lt ||
+          proof.transactionHash.toLowerCase() !== event.txHash.toLowerCase()) {
+        throw new Error('transaction_proof_event_mismatch');
+      }
+      this.db.prepare(`
+        INSERT INTO chain_event_transaction_proofs (
+          id, chain_event_id, network, account, lt, tx_hash,
+          masterchain_seqno, masterchain_root_hash, proof_policy,
+          verifier_version, verified_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        randomUUID(), id, proof.network, proof.address, proof.transactionLt,
+        proof.transactionHash.toLowerCase(), proof.masterchainSeqno,
+        proof.masterchainRootHash.toLowerCase(), proof.proofPolicy,
+        proof.verifierVersion, nowSeconds,
+      );
+      return true;
+    });
+    return transaction();
   }
 
   quarantine(id: string, reason: string, nowSeconds = Math.floor(Date.now() / 1000)) {

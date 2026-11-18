@@ -12,6 +12,12 @@ function setup() {
   const db = openDatabase(':memory:');
   const issuers = new AttestationRegistry(db);
   const disputes = new AttestationDisputeRegistry(db);
+  const insertUser = db.prepare(`
+    INSERT INTO users (id, telegram_id, telegram_username, first_name, created_at, updated_at)
+    VALUES (?, ?, NULL, ?, 1, 1)
+  `);
+  insertUser.run('user-1', '10001', 'Dispute Reporter');
+  insertUser.run('user-2', '10002', 'Second Reporter');
   const created = issuers.createIssuer({ displayName: 'Dispute Test Issuer', issuerType: 'marketplace' }, 100);
   issuers.setIssuerTrustTier(created.issuer.id, 'verified', 'Fixture issuer review completed', 'test', 150);
   const attestation = issuers.issue(created.issuer.id, {

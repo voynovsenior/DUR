@@ -102,6 +102,18 @@ fun onInternalMessage(in: InMessage) {
             storage.save();
             sendPayout(storage.buyer, storage.amount);
         }
+        ClaimAfterDeadline => {
+            var storage = lazy Storage.load();
+            assert (storage.state == EscrowState.Funded) throw Errors.InvalidState;
+            assert (in.senderAddress == storage.seller) throw Errors.Unauthorized;
+            assert (storage.completionMarked) throw Errors.CompletionNotMarked;
+            val extra = ExtraFields.fromCell(storage.extra);
+            assert (blockchain.now() > extra.disputeDeadline) throw Errors.DeadlinePassed;
+
+            storage.state = EscrowState.Released;
+            storage.save();
+            sendPayout(storage.seller, storage.amount);
+        }
         Cancel => {
             var storage = lazy Storage.load();
             assert (

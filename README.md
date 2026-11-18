@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/version-0.3.0-blue" alt="Version 0.3.0"/>
 </p>
 
-DUR is an early-stage project exploring a modular trust layer for applications in the TON ecosystem. It aims to make reputation portable, attestations verifiable, and escrow components reusable by third-party applications.
+DUR is an experimental trust layer for TON applications. The first finite Testnet MVP focuses on Telegram authentication, TON Testnet wallet ownership, consent-managed attestations, and an experimental reputation projection. Escrow and the continuous indexer are explicitly excluded from the initial deployment.
 
 > **Development status:** prototype / early development. This repository includes an experimental attestation-based reputation projection and reason-audited issuer trust-tier controls, but not calibrated production reputation or an approved issuer governance process. A draft issuer trust policy is available for review. It also includes an experimental Tolk escrow contract prototype and a Testnet-only transaction proof verifier; neither is deployed or independently audited. The current Mini App is an interface prototype. No real funds should be sent to or managed by this software.
 
@@ -28,7 +28,7 @@ DUR is designed around independently composable modules:
 - **Verification** — checks that distinguish on-chain facts from off-chain claims and issuer assertions.
 - **Developer interfaces** — APIs and SDKs intended to let external TON applications consume and issue supported evidence.
 
-The initial deployment target is **TON Testnet**. The current wallet-proof verifier explicitly rejects other network IDs. Mainnet deployment is out of scope until implementation, testing, and independent security review are complete.
+The initial deployment target is **TON Testnet**. The current wallet-proof verifier explicitly rejects other network IDs. The first MVP excludes escrow deployment and continuous indexing. Mainnet and real-value use are out of scope pending implementation, testing, and independent security review.
 
 ## Current prototype
 
@@ -51,9 +51,9 @@ The first UI package includes:
 | Reputation engine | Experimental v0.2 attestation projection with issuer-concentration diagnostics; not calibrated for production |
 | Attestation registry | Issuer-authenticated issuance/revocation, immutable JSON Schema validation, wallet-owner consent, owner-scoped attestation history, and audited admin trust-tier controls; draft issuer policy; owner-initiated disputes and admin resolution are implemented |
 | Developer SDK | TypeScript issuer, subject and admin clients; issuer lifecycle, schema registration/discovery, reputation/dispute workflows, admin dispute queue and server-side integration example |
-| Escrow contracts | Experimental Tolk prototype; not deployed or audited |
-| Backend API | Telegram authentication, TON Proof wallet linking, issuer/schema APIs, experimental reputation profiles, and read-only indexer endpoints; escrow API pending |
-| Chain indexer | Manual/continuous TON Testnet API v3 ingestion, durable checkpoints and separate transaction proof verification; semantic DUR event decoding pending |
+| Escrow contracts | Experimental Tolk prototype; excluded from MVP, not deployed or audited |
+| Backend API | Telegram authentication, TON Proof wallet linking, issuer/schema APIs, owner consent, attestation history, and experimental reputation profiles; no escrow API |
+| Chain indexer | Research adapter only; not started in MVP, imports remain unverified and cannot affect reputation |
 
 ## Repository structure
 

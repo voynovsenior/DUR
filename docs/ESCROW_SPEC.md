@@ -1,6 +1,6 @@
 # DUR Modular Escrow — Testnet Specification Draft
 
-Status: experimental Tolk contract prototype. Acton compilation, formatting/linting and six emulator tests pass. The contract is not deployed, has not undergone an independent audit, and is not approved for real funds. Any deployment consideration is Testnet-only.
+Status: experimental Tolk contract prototype. Acton compilation, formatting/linting and eight emulator tests pass. The contract is not deployed, has not undergone an independent audit, and is not approved for real funds. Any deployment consideration is Testnet-only.
 
 ## 1. Design boundary
 
@@ -56,4 +56,4 @@ The first Tolk prototype fixes the transitions and deadlines in contract storage
 - sandbox/Testnet integration tests;
 - independent contract review and audit before any mainnet consideration.
 
-The UI remains a design preview and is not connected to this contract. The contract has passed its first Acton build and six emulator tests. These tests do not establish production safety. An open dispute has no resolution timeout: if the arbiter becomes unavailable, the escrow can remain locked indefinitely. Explicit event emission, property-based conservation tests, deployment-reserve calibration, payout gas/bounce behavior, and independent accounting/security review remain outstanding. No real funds or Mainnet use are permitted.
+The UI remains a design preview and is not connected to this contract. The contract has passed its first Acton build and eight emulator tests. These tests do not establish production safety. An open dispute has no resolution timeout: if the arbiter becomes unavailable, the escrow can remain locked indefinitely. Explicit event emission, property-based conservation tests, deployment-reserve calibration, payout gas/bounce behavior, and independent accounting/security review remain outstanding. No real funds or Mainnet use are permitted.

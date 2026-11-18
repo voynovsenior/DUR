@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEscrowAgreement, isEscrowTerminal, transitionEscrow } from '../src/state-machine';
+import { createEscrowAgreement, isEscrowTerminal, transitionEscrow } from '../src/escrow/state-machine';
 
 const base = {
   id: 'deal-001',

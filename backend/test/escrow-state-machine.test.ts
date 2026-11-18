@@ -45,6 +45,48 @@ test('escrow model permits either mutually agreed terminal dispute outcome', () 
   assert.equal(isEscrowTerminal(refunded.state), true);
 });
 
+
+test('escrow transition graph is exhaustive and terminal states are immutable', () => {
+  const paths: Record<string, Array<'accepted' | 'funded' | 'disputed' | 'released' | 'refunded' | 'cancelled'>> = {
+    created: [],
+    accepted: ['accepted'],
+    funded: ['accepted', 'funded'],
+    disputed: ['accepted', 'funded', 'disputed'],
+    released: ['accepted', 'funded', 'released'],
+    refunded: ['accepted', 'funded', 'refunded'],
+    cancelled: ['cancelled'],
+  };
+  const expected: Record<string, string[]> = {
+    created: ['accepted', 'cancelled'],
+    accepted: ['funded', 'cancelled'],
+    funded: ['released', 'refunded', 'disputed'],
+    disputed: ['released', 'refunded'],
+    released: [],
+    refunded: [],
+    cancelled: [],
+  };
+  const states = Object.keys(expected);
+  for (const state of states) {
+    let agreement = createEscrowAgreement(base, 1_800_000_000);
+    for (const next of paths[state]) agreement = transitionEscrow(agreement, next);
+    assert.equal(agreement.state, state);
+    for (const next of states) {
+      if (expected[state].includes(next)) {
+        const updated = transitionEscrow(agreement, next as typeof agreement.state);
+        assert.equal(updated.state, next);
+        assert.equal(updated.version, agreement.version + 1);
+        assert.equal(agreement.state, state, 'transition must not mutate the original agreement');
+      } else {
+        assert.throws(
+          () => transitionEscrow(agreement, next as typeof agreement.state),
+          /invalid_state_transition/,
+          `unexpected transition ${state} -> ${next}`,
+        );
+      }
+    }
+  }
+});
+
 test('escrow model rejects unsafe amounts, invalid parties and deadline order', () => {
   assert.throws(() => createEscrowAgreement({ ...base, amount: '1.2' }, 1_800_000_000), /invalid_amount/);
   assert.throws(() => createEscrowAgreement({ ...base, seller: base.buyer }, 1_800_000_000), /participants_must_differ/);

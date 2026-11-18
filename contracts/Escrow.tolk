@@ -65,10 +65,7 @@ fun onInternalMessage(in: InMessage) {
         OpenDispute => {
             var storage = lazy Storage.load();
             assert (storage.state == EscrowState.Funded) throw Errors.InvalidState;
-            assert (
-                in.senderAddress == storage.buyer ||
-                in.senderAddress == storage.seller
-            ) throw Errors.Unauthorized;
+            assert (in.senderAddress == storage.buyer || in.senderAddress == storage.seller) throw Errors.Unauthorized;
             val extra = ExtraFields.fromCell(storage.extra);
             assert (blockchain.now() <= extra.disputeDeadline) throw Errors.DeadlinePassed;
 
@@ -116,14 +113,8 @@ fun onInternalMessage(in: InMessage) {
         }
         Cancel => {
             var storage = lazy Storage.load();
-            assert (
-                storage.state == EscrowState.Created ||
-                storage.state == EscrowState.Accepted
-            ) throw Errors.InvalidState;
-            assert (
-                in.senderAddress == storage.buyer ||
-                in.senderAddress == storage.seller
-            ) throw Errors.Unauthorized;
+            assert (storage.state == EscrowState.Created || storage.state == EscrowState.Accepted) throw Errors.InvalidState;
+            assert (in.senderAddress == storage.buyer || in.senderAddress == storage.seller) throw Errors.Unauthorized;
 
             storage.state = EscrowState.Cancelled;
             storage.save();

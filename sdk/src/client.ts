@@ -328,6 +328,15 @@ export class DurAdminClient {
     );
   }
 
+  listDisputes(status?: AttestationDispute["status"], limit = 50) {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error("invalid_limit");
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (status) query.set("status", status);
+    return this.request<{ disputes: AttestationDispute[] }>(
+      `/v1/admin/disputes?${query.toString()}`,
+    );
+  }
+
   resolveDispute(disputeId: string, status: "upheld" | "rejected", reason: string) {
     return this.request<{ dispute: AttestationDispute }>(
       `/v1/admin/disputes/${encodeURIComponent(disputeId)}/resolve`,

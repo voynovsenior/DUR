@@ -3,7 +3,7 @@
 Before requesting operator credentials, follow the [Testnet release handoff](RELEASE_HANDOFF.md). It records the remaining engineering gates and the later operator-only configuration step.
 
 ## Current status
-The repository is a prototype. Deployment makes the preview accessible; it does not activate production reputation scoring, cryptographically verified indexing or escrow contracts. Issuer writes require admin-created issuers, registered schemas and wallet-owner consent.
+The Testnet MVP release scope is deliberately finite: Telegram authentication, Testnet wallet ownership linking, owner consent, issuer-managed attestations, and the experimental reputation projection. Escrow is excluded and remains a non-functional design preview. The indexer is optional research telemetry: its imports remain unverified and are never reputation evidence. Do not deploy escrow contracts or start the indexer worker as part of the MVP.
 
 ## Frontend hosting
 1. Connect this repository to a static hosting provider that supports Vite.
@@ -31,10 +31,7 @@ Run npm run api on a Node.js host with a persistent disk for SQLite. Configure p
 - TON_APP_DOMAIN (exact public dApp hostname, e.g. app.example.com)
 - TON_NETWORK_ID=-3 (Testnet)
 - DUR_ADMIN_TOKEN (server-only issuer/schema administration credential)
-- TONCENTER_API_URL (optional; defaults to TON Center Testnet API v3)
-- TONCENTER_API_KEY (optional provider key)
-- INDEXER_START_SEQNO (required for first manual sync)
-- INDEXER_MAX_BLOCKS (bounded manual sync size; defaults to 1)
+TON Center credentials and indexer checkpoint variables are not required for the MVP; the indexer is excluded from the initial deployment.
 
 Keep the database directory out of static hosting. Back up the SQLite database securely. The API supports Telegram login, Testnet-first TON Proof wallet linking, wallet-owner consent, issuer/schema administration and a manual unverified Testnet indexer adapter. The API and Mini App should share a site so SameSite=Strict cookies work; if separate subdomains are used, verify the cookie and CORS configuration before deployment.
 
@@ -78,11 +75,7 @@ docker compose up -d --build api web
 docker compose logs -f api web
 ```
 
-6. Start the Testnet indexer worker only after reviewing its starting checkpoint and provider limits:
-
-```bash
-docker compose --profile indexer up -d indexer
-```
+6. Do **not** start the optional indexer worker in the MVP deployment. It imports unverified chain observations and is not required by the attestation/reputation user journey. Do not deploy or activate the experimental escrow contract.
 
 7. Start the Telegram bot only after setting its token and Mini App URL:
 
@@ -90,6 +83,6 @@ docker compose --profile indexer up -d indexer
 docker compose --profile telegram up -d bot
 ```
 
-After the services are healthy, run the public smoke checks with `DUR_SMOKE_BASE_URL=https://YOUR-MINI-APP-DOMAIN npm run smoke:test`. Caddy obtains and renews HTTPS certificates automatically when DNS and ports are configured correctly. The API and indexer share a persistent SQLite volume. The indexer remains Testnet-only; imported events remain ineligible for reputation until transaction proof and contract-specific semantic verification are completed.
+After the services are healthy, run the public smoke checks with `DUR_SMOKE_BASE_URL=https://YOUR-MINI-APP-DOMAIN npm run smoke:test`. Caddy obtains and renews HTTPS certificates automatically when DNS and ports are configured correctly. Complete the Telegram mobile QA checklist and wallet-linking journey before inviting any external testers.
 
-**Deployment boundary:** this template is for controlled Testnet QA only. The escrow contract has not undergone an independent audit, dispute resolution can lock a deal while an arbiter is unavailable, and payout/gas/bounce behavior still needs specialist review. Do not use real funds or Mainnet.
+**Deployment boundary:** this template is for controlled Testnet QA only. Escrow is excluded, the indexer is not started, and no real funds or Mainnet use are permitted.

@@ -35,7 +35,7 @@ const attestation = await dur.createAttestation({
 
 `DurIssuerClient` supports issue, read-own-attestation, revoke-own-attestation, revoke-current-key, issuer-directory discovery, active schema listing and versioned schema retrieval. `DurSubjectClient` uses the authenticated session cookie to read the caller's linked-wallet reputation profile and open/list disputes. The profile API is owner-only until a separate public visibility-consent mechanism exists.
 
-`DurAdminClient` supports issuer trust-tier review, dispute resolution and Testnet transaction verification. It is server-side only: never instantiate it in browser code, never expose its token through `VITE_` variables, and never commit the token. The SDK does not store or request wallet seed phrases or private keys.
+`DurAdminClient` supports issuer creation, issuer suspension/revocation, schema registration, issuer trust-tier review, dispute resolution and Testnet transaction verification. It is server-side only: never instantiate it in browser code, never expose its token through `VITE_` variables, and never commit the token. The SDK does not store or request wallet seed phrases or private keys.
 
 ## Integration example
 

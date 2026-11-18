@@ -357,3 +357,75 @@ get fun `test terminal payout cannot be triggered a second time`() {
     });
     expect(contract.currentState()).toEqual(EscrowState.Released);
 }
+
+
+get fun `test both parties can mutually release a disputed agreement`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    contract.sendOpenDispute(buyer.address, { value: grams("0.1") });
+
+    val buyerVote = contract.sendVoteResolution(
+        buyer.address,
+        ResolutionVote.ReleaseToSeller,
+        { value: grams("0.1") },
+    );
+    expect(buyerVote).toHaveSuccessfulTx<VoteResolution>({
+        from: buyer.address,
+        to: contract.address,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Disputed);
+
+    val sellerVote = contract.sendVoteResolution(
+        seller.address,
+        ResolutionVote.ReleaseToSeller,
+        { value: grams("0.1") },
+    );
+    expect(sellerVote).toHaveSuccessfulTx<VoteResolution>({
+        from: seller.address,
+        to: contract.address,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Released);
+}
+
+get fun `test conflicting dispute votes remain pending until both parties agree`() {
+    val (contract, buyer, seller, _) = setupTest();
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    contract.sendOpenDispute(seller.address, { value: grams("0.1") });
+
+    contract.sendVoteResolution(buyer.address, ResolutionVote.ReleaseToSeller, { value: grams("0.1") });
+    contract.sendVoteResolution(seller.address, ResolutionVote.RefundToBuyer, { value: grams("0.1") });
+    expect(contract.currentState()).toEqual(EscrowState.Disputed);
+
+    val updatedVote = contract.sendVoteResolution(
+        buyer.address,
+        ResolutionVote.RefundToBuyer,
+        { value: grams("0.1") },
+    );
+    expect(updatedVote).toHaveSuccessfulTx<VoteResolution>({
+        from: buyer.address,
+        to: contract.address,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Refunded);
+}
+
+get fun `test only the buyer or seller can submit a mutual dispute vote`() {
+    val (contract, buyer, seller, _) = setupTest();
+    val stranger = testing.treasury("stranger");
+    contract.sendAccept(seller.address, { value: grams("0.1") });
+    contract.sendFund(buyer.address, { value: grams("1") });
+    contract.sendOpenDispute(buyer.address, { value: grams("0.1") });
+
+    val unauthorized = contract.sendVoteResolution(
+        stranger.address,
+        ResolutionVote.ReleaseToSeller,
+        { value: grams("0.1") },
+    );
+    expect(unauthorized).toHaveFailedTx({
+        from: stranger.address,
+        to: contract.address,
+        exitCode: Errors.Unauthorized,
+    });
+    expect(contract.currentState()).toEqual(EscrowState.Disputed);
+}

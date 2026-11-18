@@ -53,7 +53,7 @@ export class AttestationRegistry {
   }
 
   listReputationEvidence(subjectId: string, nowSeconds = Math.floor(Date.now() / 1000)) {
-    const rows = this.db.prepare(\`
+    const rows = this.db.prepare(`
       SELECT a.id, a.issuer_id AS issuerId, a.schema_id AS schemaId,
              a.issued_at AS issuedAt, a.expires_at AS expiresAt,
              CASE
@@ -70,7 +70,7 @@ export class AttestationRegistry {
       JOIN issuers i ON i.id = a.issuer_id
       WHERE a.subject_id = ? AND i.status = 'active'
       ORDER BY a.issued_at DESC, a.id DESC
-    \`).all(nowSeconds, subjectId) as Array<{
+    `).all(nowSeconds, subjectId) as Array<{
       id: string; issuerId: string; schemaId: string; issuedAt: number;
       expiresAt: number | null; status: string;
       trustTier: 'unverified' | 'verified' | 'trusted' | 'official'; claimJson: string;

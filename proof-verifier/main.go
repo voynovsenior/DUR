@@ -61,7 +61,7 @@ func parseRequest(r io.Reader) (request, *address.Address, uint64, []byte, error
 	if req.Address == "" || req.LT == "" || req.Hash == "" {
 		return req, nil, 0, nil, errors.New("address_lt_and_hash_required")
 	}
-	addr, err := address.ParseAddr(req.Address)
+	addr, err := address.ParseRawAddr(req.Address)
 	if err != nil {
 		return req, nil, 0, nil, fmt.Errorf("invalid_address: %w", err)
 	}

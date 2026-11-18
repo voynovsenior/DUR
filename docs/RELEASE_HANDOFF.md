@@ -6,11 +6,11 @@ This document separates repository work from operator-only deployment actions. D
 
 ## Current automated baseline
 
-The latest fully green run set is commit `4d380a86b98d3bc672de226a762dfa5c87138d9a` (2026-11-18). All four required workflows completed successfully on this exact HEAD:
-- CI build, type checks and automated tests, including the owner-only attestation-history route and Mini App reputation view;
-- container configuration and API/web image builds;
-- Tolk contract build, formatting, lint and emulator tests;
-- Go proof-verifier race tests, vet and build.
+The latest fully green release-candidate run set is commit `da026db6fe1df0706383fe3f80c9ca82eb415f4a` (2026-11-18). All four required workflows completed successfully on this exact HEAD:
+- CI run `44268501892`: npm install, production dependency audit, full audit report, build and automated tests;
+- Container Build run `44268501862`: Compose configuration validation and API/web image builds;
+- TON Contracts run `44268501869`: Tolk build, formatting, wrapper generation, lint and contract tests;
+- TON Proof Verifier run `44268501946`: Go tests, vet and build.
 
 These checks validate repository consistency only. They do not replace mobile QA, live Testnet integration, or an independent security review. The escrow contract remains an experimental artifact: its payout bounce handler is empty, and the repository does not yet demonstrate safe recovery of a failed payout. It must not be deployed or used to hold funds. The UI correctly remains a non-interactive design preview.
 
@@ -31,15 +31,16 @@ Explicitly excluded from this release:
 
 ## Gates before operator secret entry
 
-- [ ] Final candidate CI workflows all green on the same commit.
-- [ ] Production dependency audit reviewed; unresolved development-only advisories documented.
-- [ ] Deployment template and `.env.example` agree on required variables.
-- [ ] Secret handling and rollback instructions are present.
-- [ ] Automated smoke test passes against the candidate build.
-- [ ] No escrow deployment or indexer worker is included in the default Compose startup.
+- [x] Final candidate CI workflows all green on the same commit (`da026db`).
+- [x] Production dependency audit passed in CI; the full development audit report is retained in CI logs.
+- [x] Deployment template and `.env.example` validated by Docker Compose CI.
+- [x] Secret handling rules documented; deployment rollback is performed by redeploying the previous known-good Git commit.
+- [x] Default Compose startup contains only API and web; bot and indexer are opt-in profiles; Escrow is not deployed.
+- [ ] Public HTTPS smoke test — necessarily runs after the operator supplies the domain and deploys the services.
 
 ## Gates after operator secret entry and deployment
 
+- [ ] Public HTTPS smoke test passes against the deployed origin.
 - [ ] HTTPS and health endpoint verified.
 - [ ] Telegram login works inside Telegram on Android.
 - [ ] TON Connect manifest loads from the deployed domain.
@@ -51,6 +52,11 @@ Explicitly excluded from this release:
 - [ ] No escrow or indexer service is running.
 
 This is the complete boundary of the first Testnet MVP. Do not add more features to this release. Any excluded subsystem requires a separate versioned scope and review.
+
+## Operator inputs needed now
+
+Repository-side release checks are green. The remaining step is deployment configuration, not another development sprint. Choose a public HTTPS domain and a host/provider capable of running Docker Compose with persistent storage. Replace the public TON Connect manifest placeholders before building the frontend. Enter Telegram bot tokens and the admin token only in the host's private secret settings. Then deploy API and web, run the HTTPS smoke test, start the bot profile, and perform Testnet wallet QA.
+
 ## Operator inputs needed later
 
 These are not requested now. The operator should provide only non-secret configuration in chat if needed (for example, the public app domain or a public Testnet wallet address). Secret values must be entered directly into the hosting provider's secret/environment settings or a private server-side `.env` file.

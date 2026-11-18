@@ -28,7 +28,7 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] Evidence eligibility, expiry/revocation filtering and issuer/schema deduplication
 - [x] Explainable dimensions, coverage counts and public profile API
 - [x] Dispute opening and administrative resolution with append-only dispute events
-- [ ] Integrate upheld disputes/corrections into reputation eligibility with explicit, tested semantics
+- [x] Exclude open/upheld disputes from reputation eligibility; restore eligibility after rejected disputes only when all other checks pass
 - [ ] Publish a formal issuer trust policy and independent review process
 - [ ] Calibrate methodology against reviewed datasets; evaluate collusion, Sybil resistance and false positives
 - [ ] Independent methodology review

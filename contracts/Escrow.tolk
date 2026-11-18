@@ -2,7 +2,7 @@ import "types"
 
 contract Escrow {
     author: "DUR Protocol"
-    version: "0.1.0"
+    version: "0.2.0"
     description: "Testnet-only TON escrow lifecycle prototype"
     storage: Storage
     incomingMessages: AllowedMessage
@@ -84,6 +84,37 @@ fun onInternalMessage(in: InMessage) {
 
             storage.state = EscrowState.Disputed;
             storage.save();
+        }
+        VoteResolution => {
+            var storage = lazy Storage.load();
+            assert (storage.state == EscrowState.Disputed) throw Errors.InvalidState;
+            assert (
+                in.senderAddress == storage.buyer || in.senderAddress == storage.seller
+            ) throw Errors.Unauthorized;
+            assert (msg.decision != ResolutionVote.NoVote) throw Errors.InvalidResolution;
+
+            if (in.senderAddress == storage.buyer) {
+                storage.buyerVote = msg.decision;
+            } else {
+                storage.sellerVote = msg.decision;
+            }
+
+            if (
+                storage.buyerVote == storage.sellerVote &&
+                storage.buyerVote != ResolutionVote.NoVote
+            ) {
+                if (storage.buyerVote == ResolutionVote.ReleaseToSeller) {
+                    storage.state = EscrowState.Released;
+                    storage.save();
+                    sendPayout(storage.seller, storage.amount);
+                } else {
+                    storage.state = EscrowState.Refunded;
+                    storage.save();
+                    sendPayout(storage.buyer, storage.amount);
+                }
+            } else {
+                storage.save();
+            }
         }
         ResolveDispute => {
             var storage = lazy Storage.load();

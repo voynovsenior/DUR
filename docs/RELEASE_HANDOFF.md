@@ -6,8 +6,8 @@ This document separates repository work from operator-only deployment actions. D
 
 ## Current automated baseline
 
-The latest recorded run set for commit `8a05bc5096ad067417f0c942669f10209c14f494` completed successfully:
-- CI build, type checks and automated tests;
+The latest fully green run set before this documentation update was commit `735ac16d583f6e004b2970c4b0bb086766464dce`. All four workflows completed successfully:
+- CI build, type checks and automated tests, including the owner-only attestation-history route and Mini App reputation view;
 - container configuration and API/web image builds;
 - Tolk contract build, formatting, lint and emulator tests;
 - Go proof-verifier race tests, vet and build.

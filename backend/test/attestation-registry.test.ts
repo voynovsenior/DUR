@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { openDatabase } from '../src/identity/database';
 import { AttestationRegistry } from '../src/attestations/registry';
+import { calculateReputation } from '../src/reputation/engine';
 
 const draft = {
   schemaId: 'dur.delivery.completed',
@@ -100,6 +101,40 @@ test('issuer trust tier changes require a reason and retain an audit trail', () 
       { previousTier: 'verified', newTier: 'trusted', reason: 'Independent quality review completed' },
     ]);
     assert.throws(() => registry.setIssuerTrustTier(created.issuer.id, 'official', '   '), /invalid_trust_tier_reason/);
+  } finally {
+    db.close();
+  }
+});
+
+
+test('reputation evidence retains newer revoked records so older claims cannot reappear', () => {
+  const db = openDatabase(':memory:');
+  try {
+    const registry = new AttestationRegistry(db);
+    const { issuer } = registry.createIssuer({ displayName: 'Reviewed Marketplace', issuerType: 'marketplace' }, 100);
+    registry.setIssuerTrustTier(issuer.id, 'verified', 'Test review completed', 'test', 150);
+    const subjectId = 'wallet:-3:0:abc123';
+    const schemaId = 'dur.reputation.v1';
+    const older = registry.issue(issuer.id, {
+      schemaId, schemaVersion: 1, subjectId,
+      claim: { reputation: { dimensions: { reliability: 95 } } },
+      evidenceRefs: [],
+    }, 200);
+    const newer = registry.issue(issuer.id, {
+      schemaId, schemaVersion: 1, subjectId,
+      claim: { reputation: { dimensions: { reliability: 10 } } },
+      evidenceRefs: [],
+    }, 300);
+    assert.equal(registry.revoke(issuer.id, newer.id, 'Correction required', 350), true);
+
+    const evidence = registry.listReputationEvidence(subjectId, 400);
+    assert.equal(evidence.length, 2);
+    assert.equal(evidence[0].id, newer.id);
+    assert.equal(evidence[0].status, 'revoked');
+    const projection = calculateReputation(evidence, 400);
+    assert.equal(projection.dimensions.reliability.value, null);
+    assert.equal(projection.eligibleEvidenceCount, 0);
+    assert.equal(evidence.find(item => item.id === older.id)?.status, 'active');
   } finally {
     db.close();
   }

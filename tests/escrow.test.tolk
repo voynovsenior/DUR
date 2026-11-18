@@ -358,7 +358,6 @@ get fun `test terminal payout cannot be triggered a second time`() {
     expect(contract.currentState()).toEqual(EscrowState.Released);
 }
 
-
 get fun `test both parties can mutually release a disputed agreement`() {
     val (contract, buyer, seller, _) = setupTest();
     contract.sendAccept(seller.address, { value: grams("0.1") });
@@ -429,7 +428,6 @@ get fun `test only the buyer or seller can submit a mutual dispute vote`() {
     });
     expect(contract.currentState()).toEqual(EscrowState.Disputed);
 }
-
 
 get fun `test no-vote value is rejected during an active dispute`() {
     val (contract, buyer, seller, _) = setupTest();

@@ -122,6 +122,10 @@ Requires an authenticated Telegram session and proof that the attestation subjec
 
 Lists disputes opened by the authenticated account.
 
+### GET /v1/admin/disputes
+
+Requires the server-side admin Bearer token. Returns up to 100 disputes ordered newest first. Optional query parameters: `status=open|upheld|rejected` and `limit=1..100`. This is the operational review queue; evidence references and reporter account IDs are restricted to administrators.
+
 ### POST /v1/admin/disputes/{id}/resolve
 
 Requires the admin Bearer token and JSON `{ "status": "upheld|rejected", "reason": "..." }`. Resolution is audit-recorded. Open disputes and upheld disputes are excluded from reputation projections; rejected disputes restore eligibility if the attestation is otherwise active and unexpired. This workflow records claims and decisions but does not independently establish facts.

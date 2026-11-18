@@ -25,6 +25,7 @@ This roadmap tracks implementation, validation and release gates. A checked item
 - [x] Owner-scoped attestation history API and Mini App display
 - [x] Administrative issuer suspension, terminal revocation and reason-audited trust-tier changes
 - [x] Experimental Reputation methodology v0.2.0 with deterministic dimension projections and issuer-concentration diagnostics
+- [x] Authenticated Mini App reputation profile view with explicit experimental-methodology and evidence limitations
 - [x] Trust-tier and 180-day half-life recency weighting
 - [x] Evidence eligibility, expiry/revocation filtering and issuer/schema deduplication
 - [x] Explainable dimensions, coverage counts and public profile API

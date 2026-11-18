@@ -48,7 +48,7 @@ The first UI package includes:
 | Mini App UI | Prototype |
 | Telegram bot | Starter implementation |
 | TON Connect | UI integration; manifest must be configured |
-| Reputation engine | Experimental v0.1 attestation projection; not calibrated for production |
+| Reputation engine | Experimental v0.2 attestation projection with issuer-concentration diagnostics; not calibrated for production |
 | Attestation registry | Issuer-authenticated issuance/revocation, immutable JSON Schema validation, wallet-owner consent, and audited admin trust-tier controls; draft issuer policy; owner-initiated disputes and admin resolution are implemented |
 | Developer SDK | TypeScript issuer, subject and admin clients; issuer lifecycle, schema registration/discovery, reputation/dispute workflows, admin dispute queue and server-side integration example |
 | Escrow contracts | Experimental Tolk prototype; not deployed or audited |

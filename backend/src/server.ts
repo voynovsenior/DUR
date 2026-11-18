@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 import { resolve } from 'node:path';
+import { isIP } from 'node:net';
 import { pathToFileURL } from 'node:url';
 import { openDatabase, type DurDatabase } from './identity/database';
 import { SessionService } from './identity/sessions';
@@ -29,6 +30,7 @@ type ApiOptions = {
   tonProofDomain?: string;
   tonNetworkId?: string;
   adminToken?: string;
+  trustedProxyIps?: string[];
 };
 
 function send(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
@@ -85,6 +87,25 @@ function secureTokenEquals(candidate: string | undefined, expected: string): boo
   return timingSafeEqual(candidateHash, expectedHash);
 }
 
+export function resolveClientIp(
+  remoteAddress: string | undefined,
+  forwardedFor: string | undefined,
+  trustedProxyIps: ReadonlySet<string>,
+): string {
+  const normalize = (value: string | undefined) => {
+    if (!value) return undefined;
+    const candidate = value.trim().replace(/^::ffff:/i, '');
+    return isIP(candidate) ? candidate.toLowerCase() : undefined;
+  };
+  const remote = normalize(remoteAddress);
+  if (remote && trustedProxyIps.has(remote)) {
+    const forwarded = forwardedFor?.split(',')[0]?.trim();
+    const client = normalize(forwarded);
+    if (client) return client;
+  }
+  return remote ?? 'unknown';
+}
+
 type RateBucket = { count: number; resetAt: number };
 
 function consumeRateLimit(
@@ -126,7 +147,11 @@ export function createApiServer(options: ApiOptions = {}) {
   const chainEvents = new ChainEventStore(db);
   const schemas = new AttestationSchemaRegistry(db);
   const rateBuckets = new Map<string, RateBucket>();
-  const clientKey = (req: IncomingMessage, scope: string) => `${scope}:${req.socket.remoteAddress ?? 'unknown'}`;
+  const configuredTrustedProxies = options.trustedProxyIps ??
+    (process.env.TRUSTED_PROXY_IPS ?? '').split(',').map(value => value.trim()).filter(Boolean);
+  const trustedProxyIps = new Set(configuredTrustedProxies.map(value => value.replace(/^::ffff:/i, '').toLowerCase()));
+  const clientKey = (req: IncomingMessage, scope: string) =>
+    `${scope}:${resolveClientIp(req.socket.remoteAddress, req.headers['x-forwarded-for'], trustedProxyIps)}`;
   const enforceLimit = (res: ServerResponse, requestId: string, key: string, limit: number) => {
     const result = consumeRateLimit(rateBuckets, key, limit, 60_000);
     if (result.allowed) return false;
